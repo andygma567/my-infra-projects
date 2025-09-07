@@ -47,3 +47,43 @@ project requirements.
 
 Tested with ansible-lint >=24.2.0 releases and the current development version
 of ansible-core.
+
+## Troubleshooting NFS Permission Issues
+
+### Problem: Permission Denied on NFS Client
+
+If you encounter "Permission denied" errors when trying to write to NFS mounted directories as root, this is likely due to **root squashing** - a security feature where NFS maps the root user (UID 0) on the client to an unprivileged user on the server.
+
+### Root Cause
+
+By default, NFS exports enable root squashing for security. In the current configuration:
+- `/home` export: Has root squashing enabled (secure but may cause permission issues for root)
+- `/scratch` export: Has `no_root_squash` option (allows root access)
+
+### Solutions
+
+**Option 1: Disable root squashing (less secure)**
+
+Update `inventory/group_vars/nfs_servers.yml` to add `no_root_squash` to the `/home` export:
+
+```yaml
+nfs_exports:
+  - "/home    *(rw,sync,no_subtree_check,no_root_squash)"
+  - "/scratch *(rw,async,no_subtree_check,no_root_squash)"
+```
+
+**Option 2: Use non-root user (more secure - recommended)**
+
+Test operations with a regular user instead of root:
+
+```bash
+sudo useradd testuser
+sudo su - testuser
+echo "test content" | tee /mnt/nfs/home/test_file.txt
+```
+
+After making changes to exports, re-run the playbook to apply the new configuration:
+
+```bash
+ansible-playbook nfs-server-client.yml
+```

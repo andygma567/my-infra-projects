@@ -6,9 +6,6 @@ nfs_mount_point: "/mnt/nfs"
 nfs_server_host: "{{ hostvars[groups['nfs_servers'][0]]['ansible_host'] }}"
 
 nfs_client_mounts:
-  - src: "{{ nfs_server_host }}:/srv"
-    path: "{{ nfs_mount_point }}/srv"
-    opts: "ro,sync"
   - src: "{{ nfs_server_host }}:/home"
     path: "{{ nfs_mount_point }}/home"
     opts: "rw,sync"
