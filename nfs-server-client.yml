@@ -1,28 +1,33 @@
 ---
-# Play 1: Install NFS utilities on all nodes and configure exports on servers
-- name: Setup NFS on all nodes
-  hosts: all
+- name: Configure NFS Server and export share
+  hosts: nfs_servers
   become: true
   roles:
-    - geerlingguy.nfs
+    - geerlingguy.nfs  # Installs NFS server packages and updates /etc/exports
 
-# Play 2: Mount NFS exports on clients
-- name: Mount NFS exports on clients
+  tasks:
+    - name: Ensure exported directories exist on the server
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /srv
+        - /scratch
+
+- name: Configure NFS Clients and mount the share
   hosts: nfs_clients
   become: true
-  vars:
-    nfs_server_host: "{{ groups['nfs_servers'] | first }}"
-    nfs_client_mounts:
-      - src: "{{ hostvars[nfs_server_host].ansible_host | default(nfs_server_host) }}:/srv"
-        path: /mnt/nfs/srv
-        opts: "ro,sync"
-      - src: "{{ hostvars[nfs_server_host].ansible_host | default(nfs_server_host) }}:/home"
-        path: /mnt/nfs/home
-        opts: "rw,sync"
-      - src: "{{ hostvars[nfs_server_host].ansible_host | default(nfs_server_host) }}:/scratch"
-        path: /mnt/nfs/scratch
-        opts: "rw,async"
+  roles:
+    - geerlingguy.nfs  # Installs NFS client utilities (e.g. nfs-common on Ubuntu)
+
   tasks:
+    - name: Create base mount directory on client(s)
+      file:
+        path: "{{ nfs_mount_point }}"
+        state: directory
+        mode: '0755'
+
     - name: Ensure client mount directories exist
       file:
         path: "{{ item.path }}"

@@ -1,0 +1,4 @@
+---
+roles:
+	- src: geerlingguy.nfs
+		version: "2.1.1"
