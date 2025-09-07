@@ -1,0 +1,8 @@
+---
+# Variables specific to the nfs_servers group.
+# The geerlingguy.nfs role will read nfs_exports and populate /etc/exports.
+
+nfs_exports:
+  - "/srv     *(ro,sync,subtree_check)"
+  - "/home    *.hostname.com(rw,sync,no_subtree_check)"
+  - "/scratch *(rw,async,no_subtree_check,no_root_squash)"
