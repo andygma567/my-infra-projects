@@ -1,28 +1,16 @@
 ---
-# Play 1: Configure NFS server and exports on nfs_servers.
-- name: Configure NFS server
-  hosts: nfs_servers
+# Play 1: Install NFS utilities on all nodes and configure exports on servers
+- name: Setup NFS on all nodes
+  hosts: all
   become: true
-  pre_tasks:
-    - name: Ensure export directories exist
-      file:
-        path: "{{ item }}"
-        state: directory
-        mode: '0755'
-      loop:
-        - /srv
-        - /home
-        - /scratch
   roles:
     - geerlingguy.nfs
 
-# Play 2: Optionally mount the exported shares on nfs_clients.
-# The geerlingguy.nfs role does not manage client mounts; we do it here.
+# Play 2: Mount NFS exports on clients
 - name: Mount NFS exports on clients
   hosts: nfs_clients
   become: true
   vars:
-    # Map of mounts to create on clients. Adjust as desired.
     nfs_server_host: "{{ groups['nfs_servers'] | first }}"
     nfs_client_mounts:
       - src: "{{ hostvars[nfs_server_host].ansible_host | default(nfs_server_host) }}:/srv"
@@ -42,24 +30,8 @@
         mode: '0755'
       loop: "{{ nfs_client_mounts }}"
 
-    - name: Install NFS client utilities
-      package:
-        name:
-          - nfs-common
-          - rpcbind
-        state: present
-      when: ansible_os_family == 'Debian'
-
-    - name: Install NFS client utilities (RHEL-family)
-      package:
-        name:
-          - nfs-utils
-          - rpcbind
-        state: present
-      when: ansible_os_family in ['RedHat', 'Rocky', 'AlmaLinux', 'OracleLinux', 'Fedora']
-
     - name: Mount NFS shares (fstab + mounted)
-      mount:
+      ansible.posix.mount:
         src: "{{ item.src }}"
         path: "{{ item.path }}"
         fstype: nfs

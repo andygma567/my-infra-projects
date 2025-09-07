@@ -2,6 +2,8 @@
 ansible_ssh_private_key_file: ~/.ssh/id_ed25519
 ansible_python_interpreter: /usr/bin/python3
 
-## NFS role variables (common defaults)
-## The geerlingguy.nfs role only needs this on servers; clients ignore it.
-nfs_exports: []
+# NFS exports - all nodes will export these directories
+nfs_exports:
+  - "/srv     *(ro,sync,subtree_check)"
+  - "/home    *.hostname.com(rw,sync,no_subtree_check)"
+  - "/scratch *(rw,async,no_subtree_check,no_root_squash)"
