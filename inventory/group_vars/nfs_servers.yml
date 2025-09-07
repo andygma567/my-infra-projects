@@ -1,0 +1,5 @@
+# NFS exports - all nodes will export these directories
+nfs_exports:
+  - "/srv     *(ro,sync,subtree_check)"
+  - "/home    *.hostname.com(rw,sync,no_subtree_check)"
+  - "/scratch *(rw,async,no_subtree_check,no_root_squash)"
