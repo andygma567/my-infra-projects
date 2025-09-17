@@ -43,6 +43,24 @@ project requirements.
  |── site.yml
 ```
 
+## Usage
+
+### Running the Ansible Playbook
+
+To deploy the NFS server and client configuration:
+
+```bash
+ansible-playbook -i inventory/hosts.yml nfs-server-client.yml
+```
+
+### Running Tests
+
+To run pytest tests for the project:
+
+```bash
+pytest -v tests/test_nfs_clients.py --hosts='ansible://nfs_clients'
+```
+
 ## Compatible with Ansible-lint
 
 Tested with ansible-lint >=24.2.0 releases and the current development version
