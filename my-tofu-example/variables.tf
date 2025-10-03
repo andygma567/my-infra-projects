@@ -23,6 +23,12 @@ variable "compute_node_size" {
   default     = "s-4vcpu-8gb"
 }
 
+variable "compute_node_count" {
+  description = "Number of compute nodes to create"
+  type        = number
+  default     = 1
+}
+
 variable "ssh_key_ids" {
   description = "List of SSH key IDs to add to the droplets"
   type        = list(string)

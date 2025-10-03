@@ -1,4 +1,3 @@
-
 # SLURM Head Node (Controller Node)
 resource "digitalocean_droplet" "slurm_head_node" {
   name     = "${var.cluster_name}-head"
@@ -16,9 +15,10 @@ resource "digitalocean_droplet" "slurm_head_node" {
   ]
 }
 
-# SLURM Compute Node
+# SLURM Compute Nodes
 resource "digitalocean_droplet" "slurm_compute_node" {
-  name     = "${var.cluster_name}-compute-01"
+  count    = var.compute_node_count
+  name     = "${var.cluster_name}-compute-${format("%02d", count.index + 1)}"
   image    = var.droplet_image
   size     = var.compute_node_size
   region   = var.region
