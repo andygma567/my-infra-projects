@@ -1,0 +1,25 @@
+# Example terraform.tfvars file
+# Copy this file to terraform.tfvars and customize for your environment
+
+# Basic Configuration
+region = "nyc1"
+cluster_name = "my-slurm-cluster"
+
+# SSH Key IDs (get these from DigitalOcean dashboard)
+# ssh_key_ids = ["12345678", "87654321"]
+
+# Droplet Sizes (head node needs more resources for self-hosted database + NFS)
+head_node_size = "s-4vcpu-8gb"        # SLURM controller + PostgreSQL + NFS server
+compute_node_size = "s-4vcpu-8gb"     # SLURM compute node
+
+# Self-hosted service configuration
+database_engine = "postgresql"         # Database engine for SLURM accounting
+nfs_shared_storage_size_gb = 0         # Additional NFS storage (0 = disabled, >0 = enabled)
+enable_node_monitoring = true          # Enable monitoring (similar to on-prem monitoring)
+testing_mode = true                    # Enable testing configurations
+
+# Optional: Specify VPC UUID if you have an existing VPC
+# vpc_uuid = "12345678-1234-1234-1234-123456789012"
+
+# Image (Ubuntu 22.04 LTS recommended)
+droplet_image = "ubuntu-22-04-x64"
