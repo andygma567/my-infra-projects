@@ -23,3 +23,6 @@ testing_mode = true                    # Enable testing configurations
 
 # Image (Ubuntu 22.04 LTS recommended)
 droplet_image = "ubuntu-22-04-x64"
+
+# The number of SLURM compute nodes to create
+compute_node_count = 3
