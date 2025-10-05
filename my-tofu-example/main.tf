@@ -6,49 +6,6 @@ resource "digitalocean_vpc" "slurm_vpc" {
   description = "VPC for SLURM cluster isolation - simulates on-prem network"
 }
 
-# Firewall for SLURM cluster
-resource "digitalocean_firewall" "slurm_firewall" {
-  name = "${var.cluster_name}-firewall"
-
-  droplet_ids = concat(
-    [digitalocean_droplet.slurm_head_node.id],
-    digitalocean_droplet.slurm_compute_node[*].id
-  )
-
-  # SSH access from anywhere
-  inbound_rule {
-    protocol         = "tcp"
-    port_range       = "22"
-    source_addresses = ["0.0.0.0/0", "::/0"]
-  }
-
-  # Allow all traffic within the cluster
-  inbound_rule {
-    protocol    = "tcp"
-    port_range  = "all"
-    source_tags = ["slurm-cluster"]
-  }
-
-  inbound_rule {
-    protocol    = "udp"
-    port_range  = "all"
-    source_tags = ["slurm-cluster"]
-  }
-
-  # Allow all outbound traffic
-  outbound_rule {
-    protocol              = "tcp"
-    port_range            = "all"
-    destination_addresses = ["0.0.0.0/0", "::/0"]
-  }
-
-  outbound_rule {
-    protocol              = "udp"
-    port_range            = "all"
-    destination_addresses = ["0.0.0.0/0", "::/0"]
-  }
-}
-
 # SLURM Head Node (Controller Node)
 resource "digitalocean_droplet" "slurm_head_node" {
   name     = "${var.cluster_name}-head"
