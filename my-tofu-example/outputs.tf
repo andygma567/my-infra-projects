@@ -71,25 +71,3 @@ output "all_node_ips" {
   }
   description = "All public and private IP addresses of cluster nodes"
 }
-
-# Additional NFS Storage Information (placeholder for future use)
-output "nfs_additional_storage" {
-  value = var.nfs_shared_storage_size_gb > 0 ? {
-    enabled = true
-    size_gb = var.nfs_shared_storage_size_gb
-    note    = "NFS storage is managed directly on head node"
-  } : null
-  description = "Additional NFS storage configuration (null if disabled)"
-}
-
-# Configuration Summary for Ansible
-output "cluster_configuration" {
-  value = {
-    cluster_name           = var.cluster_name
-    database_engine        = var.database_engine
-    testing_mode           = var.testing_mode
-    additional_nfs_storage = var.nfs_shared_storage_size_gb > 0
-    compute_node_count     = var.compute_node_count
-  }
-  description = "Cluster configuration summary for Ansible variable files"
-}
