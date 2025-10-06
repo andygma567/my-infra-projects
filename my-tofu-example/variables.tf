@@ -14,7 +14,7 @@ variable "droplet_image" {
 variable "head_node_size" {
   description = "The size/type of the SLURM head node droplet (runs SLURM controller, database, and NFS server)"
   type        = string
-  default     = "s-1vcpu-512mb-10gb"  # Increased for self-hosted database and NFS
+  default     = "s-1vcpu-512mb-10gb" # Increased for self-hosted database and NFS
 }
 
 variable "compute_node_size" {
