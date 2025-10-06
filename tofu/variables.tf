@@ -29,12 +29,6 @@ variable "compute_node_count" {
   default     = 1
 }
 
-variable "ssh_key_ids" {
-  description = "List of SSH key IDs to add to the droplets"
-  type        = list(string)
-  default     = []
-}
-
 variable "cluster_name" {
   description = "Name prefix for the SLURM cluster resources"
   type        = string

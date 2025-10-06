@@ -1,10 +1,15 @@
-# Myorg Myproject Ansible Project
+# SLURM Cluster Ansible Development Environment
 
-## Included content/ Directory Structure
+## Purpose
+
+This repository is a **development and testing environment for Ansible playbooks** that configure on-premises SLURM HPC clusters. It uses OpenTofu to provision temporary test VMs on DigitalOcean that simulate an on-prem network, allowing safe development and validation of Ansible playbooks before deploying to production.
+
+**Key Principle**: The OpenTofu infrastructure is disposable test scaffolding. The Ansible playbooks are the actual deliverable for production use.
+
+## Directory Structure
 
 The directory structure follows best practices recommended by the Ansible
-community. Feel free to customize this template according to your specific
-project requirements.
+community.
 
 ```
  ansible-project/
@@ -45,20 +50,43 @@ project requirements.
 
 ## Usage
 
-### Running the Ansible Playbook
-
-To deploy the NFS server and client configuration:
+### Quick Start Workflow
 
 ```bash
-ansible-playbook -i inventory/hosts.yml nfs-server-client.yml
+# 1. Provision test VMs on DigitalOcean (creates build/inventory.ini)
+./scripts/up.sh dev
+
+# 2. Run all Ansible playbooks (NFS → Docker → SlurmDBD → Slurm)
+./scripts/configure.sh dev
+
+# 3. Run testinfra tests to validate configuration
+./scripts/test.sh
+
+# 4. Destroy test infrastructure when done
+./scripts/destroy.sh dev
+```
+
+### Running Individual Ansible Playbooks
+
+All playbooks use the auto-generated inventory at `build/inventory.ini`:
+
+```bash
+ansible-playbook -i build/inventory.ini ansible/playbooks/nfs.yml
+ansible-playbook -i build/inventory.ini ansible/playbooks/docker.yml
+ansible-playbook -i build/inventory.ini ansible/playbooks/slurmdbd.yml
+ansible-playbook -i build/inventory.ini ansible/playbooks/slurm.yml
 ```
 
 ### Running Tests
 
-To run pytest tests for the project:
+Tests use testinfra to verify Ansible playbook results:
 
 ```bash
-pytest -v tests/test_nfs_clients.py --hosts='ansible://nfs_clients'
+# Run all tests
+pytest -q tests
+
+# Run specific test file
+pytest -v tests/test_nfs.py --hosts='ansible://nfs_clients'
 ```
 
 ## Compatible with Ansible-lint
@@ -105,3 +133,9 @@ After making changes to exports, re-run the playbook to apply the new configurat
 ```bash
 ansible-playbook nfs-server-client.yml
 ```
+
+## Testing Philosophy
+
+- **Ansible playbooks are tested**: Testinfra validates service configuration (NFS mounts, SLURM services, Docker)
+- **OpenTofu code is NOT tested**: The infrastructure provisioning exists only as disposable test scaffolding
+- **Cloud simulates on-prem**: VPC setup mirrors on-premises network topology for realistic testing

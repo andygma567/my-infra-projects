@@ -1,0 +1,14 @@
+---
+# NFS client configuration
+nfs_mount_point: "/mnt/nfs"
+
+# Use the first server in group as NFS host (based on ansible_host)
+nfs_server_host: "{{ hostvars[groups['nfs_servers'][0]]['ansible_host'] }}"
+
+nfs_client_mounts:
+  - src: "{{ nfs_server_host }}:/home"
+    path: "{{ nfs_mount_point }}/home"
+    opts: "rw,sync"
+  - src: "{{ nfs_server_host }}:/scratch"
+    path: "{{ nfs_mount_point }}/scratch"
+    opts: "rw,async"

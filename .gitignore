@@ -1,3 +1,11 @@
+# OpenTofu / Terraform
+*/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+.terraform.lock.hcl
+
+# Ansible
 .logs/*
 *.retry
 *.vault
@@ -8,6 +16,12 @@ collections/ansible_collections/*
 !collections/ansible_collections/myorg
 collections/ansible_collections/myorg/*
 !collections/ansible_collections/myorg/myproject
+
+# Ansible roles (third-party, installed via ansible-galaxy)
+ansible/roles/*
+# Uncomment lines below to keep custom roles in version control
+# !ansible/roles/my_custom_role/
+
 # https://raw.githubusercontent.com/github/gitignore/main/Python.gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -138,6 +152,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+uv.lock
 
 # Spyder project settings
 .spyderproject
@@ -175,3 +190,11 @@ cython_debug/
 
 # Ansible
 .ansible/
+
+# Build artifacts (generated inventory)
+build/
+!.gitkeep
+
+# IDE
+.idea/
+.vscode/

@@ -1,0 +1,15 @@
+---
+- name: Install and configure SLURM Database Daemon (slurmdbd)
+  hosts: slurmdbdservers
+  become: true
+  tasks:
+    - name: Placeholder - Install slurmdbd
+      ansible.builtin.debug:
+        msg: "SlurmDBD installation playbook - to be implemented"
+
+    # TODO: Add slurmdbd installation and configuration tasks
+    # Example:
+    # - name: Install slurmdbd package
+    #   ansible.builtin.package:
+    #     name: slurmdbd
+    #     state: present

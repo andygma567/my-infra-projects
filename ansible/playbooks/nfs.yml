@@ -1,0 +1,45 @@
+---
+- name: Configure NFS Server and export share
+  hosts: nfs_servers
+  become: true
+  roles:
+    - geerlingguy.nfs  # Installs NFS server packages and updates /etc/exports
+
+  tasks:
+    - name: Ensure exported directories exist on the server
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /srv
+        - /scratch
+
+- name: Configure NFS Clients and mount the share
+  hosts: nfs_clients
+  become: true
+  roles:
+    - geerlingguy.nfs  # Installs NFS client utilities (e.g. nfs-common on Ubuntu)
+
+  tasks:
+    - name: Create base mount directory on client(s)
+      file:
+        path: "{{ nfs_mount_point }}"
+        state: directory
+        mode: '0755'
+
+    - name: Ensure client mount directories exist
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        mode: '0755'
+      loop: "{{ nfs_client_mounts }}"
+
+    - name: Mount NFS shares (fstab + mounted)
+      ansible.posix.mount:
+        src: "{{ item.src }}"
+        path: "{{ item.path }}"
+        fstype: nfs
+        opts: "{{ item.opts }}"
+        state: mounted
+      loop: "{{ nfs_client_mounts }}"

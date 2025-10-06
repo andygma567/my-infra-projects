@@ -1,0 +1,20 @@
+---
+- name: Install and configure SLURM Controller
+  hosts: slurmctld
+  become: true
+  tasks:
+    - name: Placeholder - Install slurmctld
+      ansible.builtin.debug:
+        msg: "SLURM controller installation playbook - to be implemented"
+
+    # TODO: Add slurmctld installation and configuration tasks
+
+- name: Install and configure SLURM Compute Nodes
+  hosts: slurmnodes
+  become: true
+  tasks:
+    - name: Placeholder - Install slurmd
+      ansible.builtin.debug:
+        msg: "SLURM compute node installation playbook - to be implemented"
+
+    # TODO: Add slurmd installation and configuration tasks
