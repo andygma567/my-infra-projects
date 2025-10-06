@@ -68,7 +68,4 @@ resource "local_file" "ansible_inventory" {
       }
     ]
   })
-  
-  # Make file readable by everyone (useful for CI/CD)
-  file_permission = "0644"
 }
