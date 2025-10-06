@@ -30,33 +30,6 @@ output "compute_node_ids" {
   description = "DigitalOcean droplet IDs of the compute nodes"
 }
 
-# Ansible Inventory Helper
-output "ansible_inventory" {
-  value = {
-    head_nodes = {
-      hosts = {
-        "${digitalocean_droplet.slurm_head_node.name}" = {
-          ansible_host = digitalocean_droplet.slurm_head_node.ipv4_address
-          private_ip   = digitalocean_droplet.slurm_head_node.ipv4_address_private
-          node_type    = "head"
-        }
-      }
-    }
-    compute_nodes = {
-      hosts = merge([
-        for idx, node in digitalocean_droplet.slurm_compute_node : {
-          "${node.name}" = {
-            ansible_host = node.ipv4_address
-            private_ip   = node.ipv4_address_private
-            node_type    = "compute"
-          }
-        }
-      ]...)
-    }
-  }
-  description = "Ansible inventory structure for SLURM cluster nodes"
-}
-
 # All Node IPs for convenience
 output "all_node_ips" {
   value = {
@@ -70,4 +43,10 @@ output "all_node_ips" {
     )
   }
   description = "All public and private IP addresses of cluster nodes"
+}
+
+# Ansible Inventory File Location
+output "inventory_file" {
+  value       = local_file.ansible_inventory.filename
+  description = "Path to generated Ansible inventory file"
 }
