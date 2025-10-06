@@ -75,10 +75,3 @@ variable "testing_mode" {
   type        = bool
   default     = true
 }
-
-# Legacy variable (keeping for compatibility)
-variable "input" {
-  description = "This is an example of an input."
-  type        = string
-  default     = "test"
-}
