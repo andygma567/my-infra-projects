@@ -50,14 +50,14 @@ resource "digitalocean_droplet" "slurm_compute_node" {
 resource "local_file" "ansible_inventory" {
   # Where to save the generated inventory file
   filename = "${path.module}/inventory.yaml"
-  
+
   # Generate content using the template file
   content = templatefile("${path.module}/inventory.tftpl", {
     # Pass head node information to the template
     head_node_public_ip  = digitalocean_droplet.slurm_head_node.ipv4_address
     head_node_private_ip = digitalocean_droplet.slurm_head_node.ipv4_address_private
     head_node_name       = digitalocean_droplet.slurm_head_node.name
-    
+
     # Pass compute nodes as a list of objects to the template
     # The [*] syntax collects all compute nodes into a list
     compute_nodes = [
