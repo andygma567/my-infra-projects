@@ -2,7 +2,7 @@
 resource "digitalocean_vpc" "slurm_vpc" {
   name        = "${var.cluster_name}-vpc"
   region      = var.region
-  ip_range    = "10.10.0.0/16"
+  ip_range    = "10.200.0.0/24" # the 10.116.x.x range is already used by Digital Ocean
   description = "VPC for SLURM cluster isolation - simulates on-prem network"
 }
 
