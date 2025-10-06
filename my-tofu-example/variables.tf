@@ -46,32 +46,3 @@ variable "vpc_uuid" {
   type        = string
   default     = null
 }
-
-# Self-hosted service configuration variables
-variable "nfs_shared_storage_size_gb" {
-  description = "Size in GB for additional NFS storage volume (set to 0 to disable)"
-  type        = number
-  default     = 0
-}
-
-variable "database_engine" {
-  description = "Database engine to use for SLURM accounting (for documentation purposes)"
-  type        = string
-  default     = "postgresql"
-  validation {
-    condition     = contains(["postgresql", "mysql"], var.database_engine)
-    error_message = "Database engine must be either 'postgresql' or 'mysql'."
-  }
-}
-
-variable "enable_node_monitoring" {
-  description = "Enable detailed monitoring on droplets (similar to on-prem monitoring setup)"
-  type        = bool
-  default     = true
-}
-
-variable "testing_mode" {
-  description = "Enable testing mode with smaller resources and additional debugging"
-  type        = bool
-  default     = true
-}
