@@ -12,19 +12,19 @@ variable "droplet_image" {
 }
 
 variable "head_node_size" {
-  description = "The size/type of the SLURM head node droplet (runs SLURM controller, database, and NFS server)"
+  description = "The size/type of the head node droplet (will host SLURM controller, database, and NFS server after Ansible configuration)"
   type        = string
-  default     = "s-1vcpu-512mb-10gb" # Increased for self-hosted database and NFS
+  default     = "s-1vcpu-512mb-10gb"
 }
 
 variable "compute_node_size" {
-  description = "The size/type of the SLURM compute node droplet"
+  description = "The size/type of the compute node droplets (will run SLURM compute daemon after Ansible configuration)"
   type        = string
   default     = "s-1vcpu-512mb-10gb"
 }
 
 variable "compute_node_count" {
-  description = "Number of compute nodes to create"
+  description = "Number of compute node droplets to provision"
   type        = number
   default     = 1
 }
@@ -36,7 +36,7 @@ variable "ssh_key_ids" {
 }
 
 variable "cluster_name" {
-  description = "Name prefix for the SLURM cluster resources"
+  description = "Name prefix for infrastructure resources"
   type        = string
   default     = "slurm-cluster"
 }

@@ -1,9 +1,9 @@
-# VPC for network isolation (simulates on-prem LAN)
+# VPC for network isolation
 resource "digitalocean_vpc" "slurm_vpc" {
   name        = "${var.cluster_name}-vpc"
   region      = var.region
   ip_range    = "10.200.0.0/24" # the 10.116.x.x range is already used by Digital Ocean
-  description = "VPC for SLURM cluster isolation - simulates on-prem network"
+  description = "VPC for SLURM cluster network isolation"
 }
 
 # SLURM Head Node (Controller Node)
@@ -44,7 +44,7 @@ resource "digitalocean_droplet" "slurm_compute_node" {
 # ANSIBLE INVENTORY GENERATION
 # ============================================================================
 # This resource automatically generates an Ansible inventory.yaml file
-# whenever you run 'terraform apply'
+# for use with Ansible playbooks to configure SLURM and related services
 # ============================================================================
 
 resource "local_file" "ansible_inventory" {
