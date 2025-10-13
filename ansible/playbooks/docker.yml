@@ -1,0 +1,15 @@
+---
+- name: Install and configure Docker
+  hosts: all
+  become: true
+  tasks:
+    - name: Placeholder - Install Docker
+      ansible.builtin.debug:
+        msg: "Docker installation playbook - to be implemented"
+
+    # TODO: Add Docker installation tasks
+    # Example:
+    # - name: Install Docker
+    #   ansible.builtin.package:
+    #     name: docker.io
+    #     state: present

@@ -1,0 +1,47 @@
+# ---
+# all:
+#   hosts:
+#     # Head node - acts as NFS server, SLURM controller, and DB
+#     slurm-cluster-head:
+#       ansible_host: 206.189.237.28
+#       private_ip: 10.200.0.3
+#     # Compute node slurm-cluster-compute-01 - acts as NFS client and SLURM exec host
+#     slurm-cluster-compute-01:
+#       ansible_host: 161.35.15.47
+#       private_ip: 10.200.0.2
+
+#   children:
+#     # === NFS Groups ===
+#     nfs_servers:
+#       hosts:
+#         slurm-cluster-head:
+    
+#     nfs_clients:
+#       hosts:
+#         slurm-cluster-compute-01:
+
+#     # === SLURM Groups ===
+#     slurmservers:
+#       hosts:
+#         slurm-cluster-head:
+    
+#     slurmexechosts:
+#       hosts:
+#         slurm-cluster-compute-01:
+    
+#     slurmdbdservers:
+#       hosts:
+#         slurm-cluster-head:
+
+#     # === Convenience Groups ===
+#     head_nodes:
+#       hosts:
+#         slurm-cluster-head:
+    
+#     compute_nodes:
+#       hosts:
+#         slurm-cluster-compute-01:
+
+#   vars:
+#     ansible_user: root
+#     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'

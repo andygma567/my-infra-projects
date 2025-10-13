@@ -1,0 +1,7 @@
+collections:
+  - name: community.general
+  - name: ansible.posix
+
+roles:
+  - src: geerlingguy.nfs
+    version: "2.1.1"

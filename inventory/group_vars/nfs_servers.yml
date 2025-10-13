@@ -1,0 +1,4 @@
+# NFS exports - server will export these directories
+nfs_exports:
+  - "/home    *(rw,sync,no_subtree_check)"
+  - "/scratch *(rw,async,no_subtree_check,no_root_squash)"
