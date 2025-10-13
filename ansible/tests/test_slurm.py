@@ -1,7 +1,7 @@
 import pytest
 from testinfra.utils.ansible_runner import AnsibleRunner
 
-inventory = AnsibleRunner("build/hosts.yml")
+inventory = AnsibleRunner("../build/hosts.yml")
 ctrl = inventory.get_hosts("slurmctld")
 nodes = inventory.get_hosts("slurmnodes")
 

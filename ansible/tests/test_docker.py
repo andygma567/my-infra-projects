@@ -1,7 +1,7 @@
 import pytest
 from testinfra.utils.ansible_runner import AnsibleRunner
 
-inventory = AnsibleRunner("build/hosts.yml")
+inventory = AnsibleRunner("../build/hosts.yml")
 all_hosts = inventory.get_hosts("all")
 
 @pytest.mark.parametrize("host", all_hosts)
