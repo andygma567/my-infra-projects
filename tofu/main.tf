@@ -1,6 +1,6 @@
 # Look up existing public SSH key from DigitalOcean by name
 data "digitalocean_ssh_key" "my_key" {
-  name = "MacBook-Air-key"  # Replace with your actual key name in DigitalOcean
+  name = "MacBook-Air-key" # Replace with your actual key name in DigitalOcean
 }
 
 # VPC for network isolation (simulates on-prem LAN)
@@ -17,7 +17,7 @@ resource "digitalocean_droplet" "slurm_head_node" {
   image    = var.droplet_image
   size     = var.head_node_size
   region   = var.region
-  ssh_keys = [data.digitalocean_ssh_key.my_key.id]  # Reference the data source
+  ssh_keys = [data.digitalocean_ssh_key.my_key.id] # Reference the data source
   vpc_uuid = digitalocean_vpc.slurm_vpc.id
 
   tags = [
@@ -35,7 +35,7 @@ resource "digitalocean_droplet" "slurm_compute_node" {
   image    = var.droplet_image
   size     = var.compute_node_size
   region   = var.region
-  ssh_keys = [data.digitalocean_ssh_key.my_key.id]  # Reference the data source
+  ssh_keys = [data.digitalocean_ssh_key.my_key.id] # Reference the data source
   vpc_uuid = digitalocean_vpc.slurm_vpc.id
 
   tags = [

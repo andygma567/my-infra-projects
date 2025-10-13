@@ -9,13 +9,11 @@ dependencies = [
     "ansible-creator>=25.8.0",
 ]
 
-# pyproject.toml
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q"
 testpaths = [
-    "tests",
-    "integration",
+    "ansible/tests",
 ]
 
 [dependency-groups]
