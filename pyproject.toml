@@ -14,3 +14,14 @@ dev = [
     "pytest>=8.4.2",
     "pytest-testinfra>=10.2.2",
 ]
+
+
+[tool.pytest.ini_options]
+# Keep pytest rootdir at the repo root (this file lives here)
+# and scope discovery to our test suite path.
+minversion = "8.0"
+testpaths = [
+    "ansible/tests",
+]
+# Useful defaults: show extra summary info for skipped/xfail, etc.
+addopts = "-ra"

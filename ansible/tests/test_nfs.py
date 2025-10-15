@@ -1,7 +1,8 @@
 import pytest
 from testinfra.utils.ansible_runner import AnsibleRunner
 
-inventory = AnsibleRunner("../build/hosts.yml")
+# This test expects to be run from the repo root
+inventory = AnsibleRunner("build/hosts.yml")
 servers = inventory.get_hosts("nfs_servers")
 clients = inventory.get_hosts("nfs_clients")
 
