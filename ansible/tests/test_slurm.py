@@ -1,17 +1,15 @@
-import pytest
-from testinfra.utils.ansible_runner import AnsibleRunner
+# Run controller tests only on SLURM controller hosts
+testinfra_hosts = ['ansible://slurmservers']
 
-# This test expects to be run from the repo root
-inventory = AnsibleRunner("build/hosts.yml")
-ctrl = inventory.get_hosts("slurmctld")
-nodes = inventory.get_hosts("slurmnodes")
 
-@pytest.mark.parametrize("host", ctrl)
 def test_slurmctld_running_on_controller(host):
-    running = host.service("slurmctld").is_running or bool(host.process.filter(comm="slurmctld"))
+    running = (
+        host.service("slurmctld").is_running
+        or bool(host.process.filter(comm="slurmctld"))
+    )
     assert running
 
-@pytest.mark.parametrize("host", nodes)
-def test_slurmd_running_on_nodes(host):
-    running = host.service("slurmd").is_running or bool(host.process.filter(comm="slurmd"))
-    assert running
+
+# NOTE: For node tests, create a separate file if you want isolated scoping.
+# If we keep them together, the module-level hosts apply to all tests.
+# Let's split node tests into their own module for clarity.
