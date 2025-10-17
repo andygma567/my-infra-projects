@@ -1,9 +1,8 @@
 import pytest
 
 
-def test_nfs_server_service_running(host):
-    names = ["nfs-server", "nfs-kernel-server"]
-    assert any(host.service(n).is_running for n in names)
+# Run these tests only on NFS client hosts
+testinfra_hosts = ['ansible://nfs_clients']
 
 
 def test_nfs_client_mount_point_exists(host):
