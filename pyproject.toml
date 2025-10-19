@@ -24,4 +24,4 @@ testpaths = [
     "ansible/tests",
 ]
 # Useful defaults: show extra summary info for skipped/xfail, etc.
-addopts = "-ra"
+addopts = "-ra --ansible-inventory=build/hosts.yml"
