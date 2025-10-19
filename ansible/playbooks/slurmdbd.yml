@@ -1,6 +1,32 @@
-# TODO: Add slurmdbd installation and configuration tasks
-# Example:
-# - name: Install slurmdbd package
-#   ansible.builtin.package:
-#     name: slurmdbd
-#     state: present
+- hosts: slurmdbdservers
+  become: true
+  vars:
+    mysql_socket: /var/run/mysqld/mysqld.sock   # Debian/Ubuntu default
+  tasks:
+    - name: Install MariaDB server + PyMySQL
+      package:
+        name:
+          - mariadb-server
+          - python3-pymysql
+        state: present
+
+    - name: Ensure MariaDB is running
+      service:
+        name: mariadb
+        state: started
+        enabled: true
+
+    - name: Create slurm accounting database
+      community.mysql.mysql_db:
+        name: slurm_acct_db
+        state: present
+        login_unix_socket: "{{ mysql_socket }}"
+
+    - name: Create slurmdbd user with privileges on slurm_acct_db
+      community.mysql.mysql_user:
+        name: slurmdbd
+        host: 127.0.0.1
+        password: "{{ slurmdbd_config.StoragePass }}"
+        priv: "slurm_acct_db.*:ALL"
+        state: present
+        login_unix_socket: "{{ mysql_socket }}"

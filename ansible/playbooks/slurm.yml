@@ -1,1 +1,6 @@
-# TODO: Add slurmd installation and configuration tasks
+---
+- name: Slurm all in One
+  hosts: all
+  become: true
+  roles:
+    - role: galaxyproject.slurm
