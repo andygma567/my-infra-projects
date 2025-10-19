@@ -1,6 +1,10 @@
-# TODO: Add Docker installation tasks
-# Example:
-# - name: Install Docker
-#   ansible.builtin.package:
-#     name: docker.io
-#     state: present
+---
+- name: Install and configure Docker
+  hosts: all
+  become: true
+  roles:
+    - role: geerlingguy.docker
+  
+  vars:
+    docker_service_state: started
+    docker_service_enabled: true

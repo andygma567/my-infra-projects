@@ -5,3 +5,5 @@ collections:
 roles:
   - src: geerlingguy.nfs
     version: "2.1.1"
+  - src: geerlingguy.docker
+    version: "7.2.0"
