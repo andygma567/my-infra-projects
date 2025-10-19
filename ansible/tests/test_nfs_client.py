@@ -1,6 +1,16 @@
 import pytest
 
 
+# Run these tests only on NFS client hosts
+testinfra_hosts = ['ansible://nfs_clients']
+
+
+def test_nfs_client_mount_point_exists(host):
+    # Adjust to your exported mountpoint
+    mnt = host.file("/mnt/nfs")
+    assert mnt.exists
+
+
 @pytest.mark.parametrize(
     "subpath,export_suffix",
     [

@@ -1,10 +1,10 @@
-import pytest
-from testinfra.utils.ansible_runner import AnsibleRunner
+# Run these tests only on SLURM DBD server hosts
+testinfra_hosts = ['ansible://slurmdbdservers']
 
-inventory = AnsibleRunner("build/hosts.yml")
-db_hosts = inventory.get_hosts("slurmdbdservers")
 
-@pytest.mark.parametrize("host", db_hosts)
 def test_slurmdbd_running(host):
-    running = host.service("slurmdbd").is_running or bool(host.process.filter(comm="slurmdbd"))
+    running = (
+        host.service("slurmdbd").is_running
+        or bool(host.process.filter(comm="slurmdbd"))
+    )
     assert running
