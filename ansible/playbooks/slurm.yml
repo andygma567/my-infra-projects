@@ -4,8 +4,32 @@
   become: true
   
   pre_tasks:
-    # Generate dynamic slurm_nodes configuration from inventory
-    # This creates a list of dicts with 'name' and 'NodeAddr' for each compute node
+    # STEP 1: Configure hostname resolution
+    # Problem: SLURM nodes need to resolve each other's hostnames
+    # Solution: Add hostname→IP mappings to /etc/hosts on every node
+    
+    # Add the controller's hostname mapping to all nodes
+    # This allows compute nodes to find the controller, and the controller to find itself
+    - name: Add SLURM controller to /etc/hosts on all nodes
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[groups['slurmservers'][0]].private_ip }} {{ groups['slurmservers'][0] }}"
+        state: present
+      # Example result: "10.200.0.2 slurm-cluster-head" gets added to /etc/hosts
+    
+    # Add each compute node's hostname mapping to all nodes
+    # This allows the controller to find compute nodes, and compute nodes to find each other
+    - name: Add all compute nodes to /etc/hosts on all nodes
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[item].private_ip }} {{ item }}"
+        state: present
+      loop: "{{ groups['slurmexechosts'] }}"
+      # Example with 1 node: "10.200.0.3 slurm-cluster-compute-01"
+      # Example with 3 nodes: adds 3 separate lines, one per node
+    
+    # STEP 2: Generate dynamic node configuration
+    # This creates the slurm_nodes list that the role needs
     - name: Generate dynamic SLURM nodes configuration
       set_fact:
         slurm_nodes_yaml: "{{ lookup('template', '../templates/slurm_nodes.yml.j2') }}"
