@@ -2,12 +2,8 @@
 ansible_ssh_private_key_file: ~/.ssh/id_ed25519
 ansible_python_interpreter: /usr/bin/python3
 
-# Dynamic node configuration - one entry per compute host
-# SLURM will autodetect CPUs, Sockets, Cores, Threads
-# Use NodeAddr to specify private IP for communication
-slurm_nodes:
-  - name: "{{ groups['slurmexechosts'][0] }}"
-    NodeAddr: "{{ hostvars[groups['slurmexechosts'][0]].private_ip }}"
+# Dynamic node configuration is handled in the playbook via slurm_nodes.yml.j2 template
+# This template generates a list of nodes with their private IPs for proper communication
 
 slurm_partitions:
   - name: debug
@@ -17,8 +13,9 @@ slurm_partitions:
 # Override only what you need to change from defaults
 slurm_config:
   ClusterName: cluster
+  # Controller hostname - SLURM doesn't resolve this, it uses SlurmctldAddr below
   SlurmctldHost: "{{ groups['slurmservers'][0] }}"
-  # Also set the controller's address to use private IP
+  # Controller's private IP - this is what nodes actually connect to
   SlurmctldAddr: "{{ hostvars[groups['slurmservers'][0]].private_ip }}"
   # Enable accounting
   AccountingStorageType: accounting_storage/slurmdbd

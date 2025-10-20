@@ -2,5 +2,17 @@
 - name: Slurm all in One
   hosts: all
   become: true
+  
+  pre_tasks:
+    # Generate dynamic slurm_nodes configuration from inventory
+    # This creates a list of dicts with 'name' and 'NodeAddr' for each compute node
+    - name: Generate dynamic SLURM nodes configuration
+      set_fact:
+        slurm_nodes_yaml: "{{ lookup('template', '../templates/slurm_nodes.yml.j2') }}"
+    
+    - name: Parse SLURM nodes YAML into list
+      set_fact:
+        slurm_nodes: "{{ slurm_nodes_yaml | from_yaml }}"
+  
   roles:
     - role: galaxyproject.slurm

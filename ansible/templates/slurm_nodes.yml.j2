@@ -1,0 +1,6 @@
+# Dynamic SLURM nodes configuration
+# Generated from groups['slurmexechosts'] inventory
+{% for host in groups['slurmexechosts'] %}
+- name: {{ host }}
+  NodeAddr: {{ hostvars[host].private_ip }}
+{% endfor %}
