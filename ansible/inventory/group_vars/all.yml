@@ -4,7 +4,10 @@ ansible_python_interpreter: /usr/bin/python3
 
 # Dynamic node configuration - one entry per compute host
 # SLURM will autodetect CPUs, Sockets, Cores, Threads
-slurm_nodes: "{{ groups['slurmexechosts'] | map('community.general.dict_kv', 'name') | list }}"
+# Use NodeAddr to specify private IP for communication
+slurm_nodes:
+  - name: "{{ groups['slurmexechosts'][0] }}"
+    NodeAddr: "{{ hostvars[groups['slurmexechosts'][0]].private_ip }}"
 
 slurm_partitions:
   - name: debug
@@ -15,6 +18,8 @@ slurm_partitions:
 slurm_config:
   ClusterName: cluster
   SlurmctldHost: "{{ groups['slurmservers'][0] }}"
+  # Also set the controller's address to use private IP
+  SlurmctldAddr: "{{ hostvars[groups['slurmservers'][0]].private_ip }}"
   # Enable accounting
   AccountingStorageType: accounting_storage/slurmdbd
   AccountingStorageHost: "{{ groups['slurmdbdservers'][0] }}"
