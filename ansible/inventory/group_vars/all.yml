@@ -1,3 +1,27 @@
 ---
 ansible_ssh_private_key_file: ~/.ssh/id_ed25519
 ansible_python_interpreter: /usr/bin/python3
+
+# Configure munge - just provide the path, not the content
+slurm_configure_munge: true
+slurm_munge_key: "{{ playbook_dir }}/../../munge.key"
+
+# Dynamic node configuration is handled in the playbook via slurm_nodes.yml.j2 template
+# This template generates a list of nodes with their private IPs for proper communication
+
+slurm_partitions:
+  - name: debug
+    Nodes: "{{ groups['slurmexechosts'] | join(',') }}"
+    Default: YES
+
+# Override only what you need to change from defaults
+slurm_config:
+  ClusterName: cluster
+  # Controller hostname - SLURM doesn't resolve this, it uses SlurmctldAddr below
+  SlurmctldHost: "{{ groups['slurmservers'][0] }}"
+  # Controller's private IP - this is what nodes actually connect to
+  SlurmctldAddr: "{{ hostvars[groups['slurmservers'][0]].private_ip }}"
+  # Enable accounting
+  AccountingStorageType: accounting_storage/slurmdbd
+  AccountingStorageHost: "{{ groups['slurmdbdservers'][0] }}"
+  JobAcctGatherType: jobacct_gather/linux
