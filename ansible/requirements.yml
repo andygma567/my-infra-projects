@@ -1,9 +1,10 @@
-collections:
-  - name: community.general
-  - name: ansible.posix
-
+---
 roles:
   - src: geerlingguy.nfs
     version: "2.1.1"
+  
   - src: geerlingguy.docker
-    version: "7.2.0"
+    version: "7.8.0"
+  
+  - src: galaxyproject.slurm
+    version: "1.0.5"
