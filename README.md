@@ -11,6 +11,8 @@ This repository is a **development and testing environment for Ansible playbooks
 The directory structure follows best practices recommended by the Ansible
 community.
 
+I set up scaffolding for ansible using ansible-creator (my best experience): https://github.com/ansible/ansible-creator 
+
 ```
  ansible-project/
  |── .devcontainer/
