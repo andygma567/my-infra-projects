@@ -2,142 +2,108 @@
 
 ## Purpose
 
-This repository is a **development and testing environment for Ansible playbooks** that configure on-premises SLURM HPC clusters. It uses OpenTofu to provision temporary test VMs on DigitalOcean that simulate an on-prem network, allowing safe development and validation of Ansible playbooks before deploying to production.
+This repository is a **development and testing environment for the Ansible
+playbooks that configure SLURM** on HPC clusters. It uses OpenTofu to provision
+disposable test VMs on DigitalOcean that simulate a bare-metal cluster, so the
+playbooks can be developed and validated before running them against the real
+on-premises cluster.
 
-**Key Principle**: The OpenTofu infrastructure is disposable test scaffolding. The Ansible playbooks are the actual deliverable for production use.
+**Key principle:** The OpenTofu infrastructure is disposable test scaffolding.
+The **Ansible SLURM playbooks are the actual deliverable**.
 
-## Directory Structure
+### Shared filesystem
 
-The directory structure follows best practices recommended by the Ansible
-community.
+The production cluster already has a shared filesystem (NFS), so Ansible does
+**not** set one up. To mirror that in the test environment, OpenTofu provisions a
+**DigitalOcean managed Network File Storage** share and mounts it on every node
+via cloud-init *before* Ansible runs. As a result, the playbooks only configure
+SLURM and assume the shared filesystem already exists.
 
-I set up scaffolding for ansible using ansible-creator (my best experience): https://github.com/ansible/ansible-creator 
+## Architecture
 
 ```
- ansible-project/
- |── .devcontainer/
- |    └── docker/
- |        └── devcontainer.json
- |    └── podman/
- |        └── devcontainer.json
- |    └── devcontainer.json
- |── .github/
- |    └── workflows/
- |        └── tests.yml
- |    └── ansible-code-bot.yml
- |── .vscode/
- |    └── extensions.json
- |── collections/
- |   └── requirements.yml
- |   └── ansible_collections/
- |       └── project_org/
- |           └── project_repo/
- |               └── README.md
- |               └── roles/sample_role/
- |                         └── README.md
- |                         └── tasks/main.yml
- |── inventory/
- |   |── hosts.yml
- |   |── argspec_validation_inventory.yml
- |   └── groups_vars/
- |   └── host_vars/
- |── ansible-navigator.yml
- |── ansible.cfg
- |── devfile.yaml
- |── linux_playbook.yml
- |── network_playbook.yml
- |── README.md
- |── site.yml
+Infrastructure (OpenTofu, disposable)        Deliverable (Ansible)
+-------------------------------------        ---------------------
+VPC                                          playbooks/slurmdbd.yml
+managed NFS share  --(cloud-init mount)-->   playbooks/slurm.yml
+head + compute droplets
+        |
+        '--> build/hosts.yml (single generated inventory)
 ```
+
+- `tofu/` - provisions the VPC, the managed NFS share, and the droplets, and
+  generates the Ansible inventory at `build/hosts.yml` from `tofu/hosts.tftpl`.
+- `ansible/` - the SLURM playbooks (`slurmdbd.yml`, `slurm.yml`), group vars, and
+  testinfra tests. `ansible/ansible.cfg` combines `inventory/` (group vars) with
+  the generated `../build/hosts.yml` (hosts).
+- `scripts/` - thin wrappers for the provision -> configure -> test -> destroy
+  workflow.
+- `envs/<env>/tofu.tfvars` - per-environment OpenTofu variables.
+
+## Prerequisites
+
+- A DigitalOcean API token exported as `DIGITALOCEAN_TOKEN`.
+- An SSH key registered in DigitalOcean (referenced by `tofu/main.tf`).
+- OpenTofu, Ansible, and the Python test dependencies (`pytest`, `pytest-testinfra`).
+- **Region:** managed Network File Storage is GA only in `atl1`, `nyc2`, and
+  `ams3`, so `region` in your tfvars must be one of these. The default is `nyc2`.
 
 ## Usage
 
-### Quick Start Workflow
+### Quick start workflow
 
 ```bash
-# 1. Provision test VMs on DigitalOcean (creates build/inventory.ini)
+# 1. Provision test infra: VPC + managed NFS share + droplets (generates build/hosts.yml)
 ./scripts/up.sh dev
 
-# 2. Run all Ansible playbooks (NFS → Docker → SlurmDBD → Slurm)
+# 2. Configure SLURM (slurmdbd -> slurm). The shared filesystem is already mounted.
 ./scripts/configure.sh dev
 
-# 3. Run testinfra tests to validate configuration
+# 3. Run the testinfra test subset to validate the result
 ./scripts/test.sh
 
-# 4. Destroy test infrastructure when done
+# 4. Destroy the test infrastructure when done
 ./scripts/destroy.sh dev
 ```
 
-### Running Individual Ansible Playbooks
+### Running individual Ansible playbooks
 
-All playbooks use the auto-generated inventory at `build/inventory.ini`:
-
-```bash
-ansible-playbook -i build/inventory.ini ansible/playbooks/nfs.yml
-ansible-playbook -i build/inventory.ini ansible/playbooks/docker.yml
-ansible-playbook -i build/inventory.ini ansible/playbooks/slurmdbd.yml
-ansible-playbook -i build/inventory.ini ansible/playbooks/slurm.yml
-```
-
-### Running Tests
-
-Tests use testinfra to verify Ansible playbook results:
+Run from the `ansible/` directory so `ansible.cfg` resolves the inventory
+(`./inventory` for group vars + `../build/hosts.yml` for hosts):
 
 ```bash
-# Run all tests
-pytest -q tests
+cd ansible
+ansible-galaxy collection install -r requirements.yml -p collections
+ansible-galaxy role install -r requirements.yml -p roles
 
-# Run specific test file
-pytest -v tests/test_nfs.py --hosts='ansible://nfs_clients'
+ansible all -m ping
+ansible-playbook playbooks/slurmdbd.yml
+ansible-playbook playbooks/slurm.yml
 ```
 
-## Compatible with Ansible-lint
+(`playbooks/docker.yml` is still available but is no longer part of the default
+deliverable path.)
 
-Tested with ansible-lint >=24.2.0 releases and the current development version
-of ansible-core.
+### Running tests
 
-## Troubleshooting NFS Permission Issues
-
-### Problem: Permission Denied on NFS Client
-
-If you encounter "Permission denied" errors when trying to write to NFS mounted directories as root, this is likely due to **root squashing** - a security feature where NFS maps the root user (UID 0) on the client to an unprivileged user on the server.
-
-### Root Cause
-
-By default, NFS exports enable root squashing for security. In the current configuration:
-- `/home` export: Has root squashing enabled (secure but may cause permission issues for root)
-- `/scratch` export: Has `no_root_squash` option (allows root access)
-
-### Solutions
-
-**Option 1: Disable root squashing (less secure)**
-
-Update `inventory/group_vars/nfs_servers.yml` to add `no_root_squash` to the `/home` export:
-
-```yaml
-nfs_exports:
-  - "/home    *(rw,sync,no_subtree_check,no_root_squash)"
-  - "/scratch *(rw,async,no_subtree_check,no_root_squash)"
-```
-
-**Option 2: Use non-root user (more secure - recommended)**
-
-Test operations with a regular user instead of root:
+Tests use testinfra to verify the playbook results against the live inventory.
+`scripts/test.sh` runs a curated subset matching the SLURM deliverable plus the
+managed shared filesystem:
 
 ```bash
-sudo useradd testuser
-sudo su - testuser
-echo "test content" | tee /mnt/nfs/home/test_file.txt
+# Curated subset (from the ansible/ directory)
+./scripts/test.sh
+
+# Or a single test file
+cd ansible
+pytest -v tests/test_slurm.py
 ```
 
-After making changes to exports, re-run the playbook to apply the new configuration:
+## Testing philosophy
 
-```bash
-ansible-playbook nfs-server-client.yml
-```
-
-## Testing Philosophy
-
-- **Ansible playbooks are tested**: Testinfra validates service configuration (NFS mounts, SLURM services, Docker)
-- **OpenTofu code is NOT tested**: The infrastructure provisioning exists only as disposable test scaffolding
-- **Cloud simulates on-prem**: VPC setup mirrors on-premises network topology for realistic testing
+- **Ansible playbooks are tested**: testinfra validates SLURM services
+  (`slurmctld`, `slurmd`, `slurmdbd`) and that the shared filesystem is mounted.
+- **OpenTofu code is NOT tested**: it exists only as disposable test scaffolding.
+- **Cloud simulates the cluster**: the VPC + managed NFS share mirror the
+  production topology (existing shared filesystem) so the playbooks behave the
+  same way in both places.
