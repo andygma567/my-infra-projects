@@ -38,7 +38,7 @@ head + compute droplets
   the generated `../build/hosts.yml` (hosts).
 - `scripts/` - thin wrappers for the provision -> configure -> test -> destroy
   workflow.
-- `envs/<env>/tofu.tfvars` - per-environment OpenTofu variables.
+- `tofu/terraform.tfvars` - OpenTofu variables (auto-loaded by `tofu apply`).
 
 ## Prerequisites
 
@@ -54,16 +54,16 @@ head + compute droplets
 
 ```bash
 # 1. Provision test infra: VPC + managed NFS share + droplets (generates build/hosts.yml)
-./scripts/up.sh dev
+./scripts/up.sh
 
 # 2. Configure SLURM (slurmdbd -> slurm). The shared filesystem is already mounted.
-./scripts/configure.sh dev
+./scripts/configure.sh
 
 # 3. Run the testinfra test subset to validate the result
 ./scripts/test.sh
 
 # 4. Destroy the test infrastructure when done
-./scripts/destroy.sh dev
+./scripts/destroy.sh
 ```
 
 ### Running individual Ansible playbooks

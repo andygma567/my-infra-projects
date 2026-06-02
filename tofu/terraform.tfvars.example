@@ -1,5 +1,5 @@
 # Example terraform.tfvars file
-# Copy this file to terraform.tfvars (or use envs/<env>/tofu.tfvars) and customize.
+# Copy this file to terraform.tfvars and customize. tofu auto-loads terraform.tfvars.
 
 # Basic Configuration
 # region MUST be one of atl1, nyc2, ams3 (regions where managed NFS is GA).

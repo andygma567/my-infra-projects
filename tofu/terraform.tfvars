@@ -1,4 +1,4 @@
-# Dev environment OpenTofu variables.
+# OpenTofu variables (auto-loaded by `tofu apply`).
 # region MUST be one of atl1, nyc2, ams3 (regions where managed NFS is GA).
 region       = "nyc2"
 cluster_name = "slurm-dev"
