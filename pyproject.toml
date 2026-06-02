@@ -24,4 +24,8 @@ testpaths = [
     "ansible/tests",
 ]
 # Useful defaults: show extra summary info for skipped/xfail, etc.
-addopts = "-ra --ansible-inventory=build/hosts.yml"
+# NOTE: the inventory is resolved via ansible/ansible.cfg
+# (inventory = ./inventory,./../build/hosts.yml), since scripts/test.sh runs
+# pytest from the ansible/ directory. Do not add --ansible-inventory here: a
+# relative path would be wrong from ansible/ and would override ansible.cfg.
+addopts = "-ra"
