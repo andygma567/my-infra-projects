@@ -66,6 +66,68 @@ head + compute droplets
 ./scripts/destroy.sh
 ```
 
+### Teardown gotchas (`destroy.sh`)
+
+`scripts/destroy.sh` can fail or hang for two reasons that are **not** bugs in
+this repo — they're rough edges in DigitalOcean's managed NFS (a new product)
+and a hard rule about default VPCs. Both are recoverable with local
+`tofu state rm` commands (these only edit local state and never touch real
+infrastructure).
+
+#### 1. NFS detach is slow and can time out
+
+Destroying `digitalocean_nfs_attachment.shared` calls DigitalOcean's
+*asynchronous* "detach share from VPC" operation. The provider polls for
+completion with an **internal, hardcoded ~5-minute timeout** that a
+`timeouts { delete = "..." }` block **cannot** override. If DO takes longer than
+that, you'll see:
+
+```
+Error: Error detaching share from vpc after retry timeout:
+  ... timeout waiting for NFS detach to complete
+```
+
+The detach usually *does* finish on DO's side moments later (the share shows as
+`Detached` / `INACTIVE` in the UI). But because the attachment is still in
+OpenTofu state, the next `destroy` tries to detach it again and hits a catch-22:
+
+```
+400 ... share must be active to detach
+```
+
+**Workaround** — once the share shows `Detached` in the DO UI, drop the stale
+attachment from state and re-run destroy:
+
+```bash
+cd tofu
+tofu state rm digitalocean_nfs_attachment.shared
+cd .. && ./scripts/destroy.sh   # now deletes the share + VPC
+```
+
+#### 2. The VPC may be a default VPC and cannot be deleted
+
+DigitalOcean requires exactly one **default VPC per region**, and default VPCs
+**cannot be deleted** (the API returns `403 Can not delete default VPCs`). If
+`slurm-dev-vpc` was auto-promoted to the region default (happens when the region
+has no other default at creation time), `destroy` will fail on it:
+
+```
+Error: DELETE .../v2/vpcs/<id>: 403 ... Can not delete default VPCs
+```
+
+An empty VPC is **free** (you only pay for resources *inside* it, which are
+already gone), so the simplest fix is to stop tracking it:
+
+```bash
+cd tofu
+tofu state rm digitalocean_vpc.slurm_vpc   # VPC stays on DO as the free region default
+```
+
+After this, `tofu state list` is empty and `destroy.sh` reports a clean run.
+
+> Tip: VPCs live under **Networking → VPC** in the DO console (not the
+> **Domains** tab), in case you go looking for the leftover network.
+
 ### Running individual Ansible playbooks
 
 Run from the `ansible/` directory so `ansible.cfg` resolves the inventory
