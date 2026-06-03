@@ -24,15 +24,18 @@ SLURM and assume the shared filesystem already exists.
 ```
 Infrastructure (OpenTofu, disposable)        Deliverable (Ansible)
 -------------------------------------        ---------------------
-VPC                                          playbooks/slurmdbd.yml
+region default VPC (referenced, not made)    playbooks/slurmdbd.yml
 managed NFS share  --(cloud-init mount)-->   playbooks/slurm.yml
 head + compute droplets
         |
         '--> build/hosts.yml (single generated inventory)
 ```
 
-- `tofu/` - provisions the VPC, the managed NFS share, and the droplets, and
-  generates the Ansible inventory at `build/hosts.yml` from `tofu/hosts.tftpl`.
+- `tofu/` - provisions the managed NFS share and the droplets, and generates the
+  Ansible inventory at `build/hosts.yml` from `tofu/hosts.tftpl`. The network is
+  **not** provisioned: `tofu/main.tf` references the region's existing default
+  VPC via a `data` source (see "Networking" below), so the disposable
+  create/destroy cycle never touches a VPC.
 - `ansible/` - the SLURM playbooks (`slurmdbd.yml`, `slurm.yml`), group vars, and
   testinfra tests. `ansible/ansible.cfg` combines `inventory/` (group vars) with
   the generated `../build/hosts.yml` (hosts).
@@ -53,7 +56,8 @@ head + compute droplets
 ### Quick start workflow
 
 ```bash
-# 1. Provision test infra: VPC + managed NFS share + droplets (generates build/hosts.yml)
+# 1. Provision test infra: managed NFS share + droplets in the region's default
+#    VPC (generates build/hosts.yml)
 ./scripts/up.sh
 
 # 2. Configure SLURM (slurmdbd -> slurm). The shared filesystem is already mounted.
@@ -66,15 +70,44 @@ head + compute droplets
 ./scripts/destroy.sh
 ```
 
-### Teardown gotchas (`destroy.sh`)
+### Networking: the VPC is referenced, not managed
 
-`scripts/destroy.sh` can fail or hang for two reasons that are **not** bugs in
-this repo — they're rough edges in DigitalOcean's managed NFS (a new product)
-and a hard rule about default VPCs. Both are recoverable with local
-`tofu state rm` commands (these only edit local state and never touch real
-infrastructure).
+`tofu/main.tf` does **not** create a VPC. Instead it looks up the region's
+existing **default** VPC via a data source:
 
-#### 1. NFS detach is slow and can time out
+```hcl
+data "digitalocean_vpc" "slurm_vpc" {
+  region = var.region
+}
+```
+
+This is deliberate. DigitalOcean requires exactly one **default VPC per region**
+and **default VPCs cannot be deleted** (`403 Can not delete default VPCs`). A
+dedicated VPC created by `apply` gets auto-promoted to the region default when no
+other default exists, which then breaks the disposable lifecycle in two ways:
+
+- **`destroy` fails** with `403 ... Can not delete default VPCs`, and
+- after dropping it from state, the **next `apply` fails** with
+  `422 ... a VPC with the same name already exists`.
+
+Referencing the always-present default VPC sidesteps both: the droplets and NFS
+share are placed in it, but `apply` never creates it and `destroy` never deletes
+it. Trade-off: the test nodes share the region's default VPC rather than a
+dedicated isolated network with a custom IP range — fine for disposable test
+scaffolding.
+
+> **Migrating from the old resource-based config?** If a previous version managed
+> `digitalocean_vpc.slurm_vpc`, drop it from state once (this only edits local
+> state; the VPC itself is untouched and stays as the free region default):
+>
+> ```bash
+> cd tofu
+> tofu state rm digitalocean_vpc.slurm_vpc   # ignore if it's already absent
+> ```
+>
+> VPCs live under **Networking → VPC** in the DO console (not the **Domains** tab).
+
+### Teardown gotcha (`destroy.sh`): NFS detach is slow and can time out
 
 Destroying `digitalocean_nfs_attachment.shared` calls DigitalOcean's
 *asynchronous* "detach share from VPC" operation. The provider polls for
@@ -96,37 +129,14 @@ OpenTofu state, the next `destroy` tries to detach it again and hits a catch-22:
 ```
 
 **Workaround** — once the share shows `Detached` in the DO UI, drop the stale
-attachment from state and re-run destroy:
+attachment from state and re-run destroy (this only edits local state and never
+touches real infrastructure):
 
 ```bash
 cd tofu
 tofu state rm digitalocean_nfs_attachment.shared
-cd .. && ./scripts/destroy.sh   # now deletes the share + VPC
+cd .. && ./scripts/destroy.sh   # now deletes the share; the VPC is left alone
 ```
-
-#### 2. The VPC may be a default VPC and cannot be deleted
-
-DigitalOcean requires exactly one **default VPC per region**, and default VPCs
-**cannot be deleted** (the API returns `403 Can not delete default VPCs`). If
-`slurm-dev-vpc` was auto-promoted to the region default (happens when the region
-has no other default at creation time), `destroy` will fail on it:
-
-```
-Error: DELETE .../v2/vpcs/<id>: 403 ... Can not delete default VPCs
-```
-
-An empty VPC is **free** (you only pay for resources *inside* it, which are
-already gone), so the simplest fix is to stop tracking it:
-
-```bash
-cd tofu
-tofu state rm digitalocean_vpc.slurm_vpc   # VPC stays on DO as the free region default
-```
-
-After this, `tofu state list` is empty and `destroy.sh` reports a clean run.
-
-> Tip: VPCs live under **Networking → VPC** in the DO console (not the
-> **Domains** tab), in case you go looking for the leftover network.
 
 ### Running individual Ansible playbooks
 

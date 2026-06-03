@@ -3,12 +3,16 @@ data "digitalocean_ssh_key" "my_key" {
   name = "MacBook-Air-key" # Replace with your actual key name in DigitalOcean
 }
 
-# VPC for network isolation (simulates on-prem LAN)
-resource "digitalocean_vpc" "slurm_vpc" {
-  name        = "${var.cluster_name}-vpc"
-  region      = var.region
-  ip_range    = "10.200.0.0/24"
-  description = "VPC for SLURM cluster isolation - simulates on-prem network"
+# Reuse the region's existing default VPC instead of creating a dedicated one.
+# DigitalOcean promotes the first VPC in a region to the regional "default",
+# which then can NOT be deleted (destroy -> 403 "Can not delete default VPCs")
+# and whose name collides on the next apply (-> 422 "a VPC with the same name
+# already exists"). Referencing the default VPC via a data source keeps the
+# network out of the disposable lifecycle: `apply` never creates it and
+# `destroy` never deletes it. Every region always has exactly one default VPC,
+# so this lookup always resolves.
+data "digitalocean_vpc" "slurm_vpc" {
+  region = var.region
 }
 
 # ============================================================================
@@ -23,7 +27,7 @@ resource "digitalocean_nfs" "shared" {
   name             = "${var.cluster_name}-share"
   region           = var.region
   size             = var.nfs_size_gib
-  vpc_id           = digitalocean_vpc.slurm_vpc.id
+  vpc_id           = data.digitalocean_vpc.slurm_vpc.id
   performance_tier = var.nfs_performance_tier
 }
 
@@ -31,7 +35,7 @@ resource "digitalocean_nfs" "shared" {
 resource "digitalocean_nfs_attachment" "shared" {
   region   = var.region
   share_id = digitalocean_nfs.shared.id
-  vpc_id   = digitalocean_vpc.slurm_vpc.id
+  vpc_id   = data.digitalocean_vpc.slurm_vpc.id
 }
 
 # cloud-init script that mounts the managed share on each droplet at boot.
@@ -50,7 +54,7 @@ resource "digitalocean_droplet" "slurm_head_node" {
   size      = var.head_node_size
   region    = var.region
   ssh_keys  = [data.digitalocean_ssh_key.my_key.id] # Reference the data source
-  vpc_uuid  = digitalocean_vpc.slurm_vpc.id
+  vpc_uuid  = data.digitalocean_vpc.slurm_vpc.id
   user_data = local.nfs_mount_user_data
 
   # Ensure the share is attached to the VPC before droplets try to mount it.
@@ -72,7 +76,7 @@ resource "digitalocean_droplet" "slurm_compute_node" {
   size      = var.compute_node_size
   region    = var.region
   ssh_keys  = [data.digitalocean_ssh_key.my_key.id] # Reference the data source
-  vpc_uuid  = digitalocean_vpc.slurm_vpc.id
+  vpc_uuid  = data.digitalocean_vpc.slurm_vpc.id
   user_data = local.nfs_mount_user_data
 
   # Ensure the share is attached to the VPC before droplets try to mount it.
