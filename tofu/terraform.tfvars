@@ -3,8 +3,8 @@
 region       = "nyc2"
 cluster_name = "slurm-dev"
 
-head_node_size    = "s-1vcpu-512mb-10gb"
-compute_node_size = "s-1vcpu-512mb-10gb"
+head_node_size    = "s-1vcpu-2gb"
+compute_node_size = "s-1vcpu-2gb"
 
 # Managed Network File Storage (shared filesystem)
 nfs_size_gib         = 50

@@ -17,15 +17,15 @@ variable "droplet_image" {
 }
 
 variable "head_node_size" {
-  description = "The size/type of the SLURM head node droplet (runs SLURM controller and accounting database). NFS is provided by a managed share, not this node."
+  description = "The size/type of the SLURM head node droplet (runs SLURM controller and accounting database). NFS is provided by a managed share, not this node. Needs >=2GB RAM so the MariaDB/Slurm package installs don't trip the OOM killer."
   type        = string
-  default     = "s-1vcpu-512mb-10gb"
+  default     = "s-1vcpu-2gb"
 }
 
 variable "compute_node_size" {
-  description = "The size/type of the SLURM compute node droplet"
+  description = "The size/type of the SLURM compute node droplet. Uses >=2GB RAM so the slurmd package install doesn't trip the OOM killer."
   type        = string
-  default     = "s-1vcpu-512mb-10gb"
+  default     = "s-1vcpu-2gb"
 }
 
 variable "compute_node_count" {
