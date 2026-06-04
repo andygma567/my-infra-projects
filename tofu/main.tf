@@ -108,11 +108,6 @@ resource "local_file" "ansible_inventory" {
     head_node_private_ip = digitalocean_droplet.slurm_head_node.ipv4_address_private
     head_node_name       = digitalocean_droplet.slurm_head_node.name
 
-    # Managed shared filesystem details (mounted on every node via cloud-init)
-    nfs_share_host  = digitalocean_nfs.shared.host
-    nfs_share_path  = digitalocean_nfs.shared.mount_path
-    nfs_mount_point = var.nfs_mount_point
-
     # Pass compute nodes as a list of objects to the template
     # The [*] syntax collects all compute nodes into a list
     compute_nodes = [

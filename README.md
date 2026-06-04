@@ -153,14 +153,12 @@ ansible-playbook playbooks/slurmdbd.yml
 ansible-playbook playbooks/slurm.yml
 ```
 
-(`playbooks/docker.yml` is still available but is no longer part of the default
-deliverable path.)
-
 ### Running tests
 
 Tests use testinfra to verify the playbook results against the live inventory.
-`scripts/test.sh` runs a curated subset matching the SLURM deliverable plus the
-managed shared filesystem:
+All checks run from the controller (head node), so the suite cost is independent
+of the number of compute nodes. `scripts/test.sh` runs the SLURM deliverable
+subset:
 
 ```bash
 # Curated subset (from the ansible/ directory)
@@ -173,8 +171,13 @@ pytest -v tests/test_slurm.py
 
 ## Testing philosophy
 
-- **Ansible playbooks are tested**: testinfra validates SLURM services
-  (`slurmctld`, `slurmd`, `slurmdbd`) and that the shared filesystem is mounted.
+- **Ansible playbooks are tested**: testinfra validates the SLURM controller
+  services (`slurmctld`, `slurmdbd`) and runs an `srun` smoke job, all from the
+  head node.
+- **Fleet health is checked from the controller**: rather than SSHing every
+  compute node, a single threshold test parses `sinfo` and requires at least
+  `SLURM_MIN_HEALTHY_PCT` (set in `ansible/tests/test_slurm.py`) of nodes to be
+  healthy. This keeps the suite O(1) in node count and scales to 100+ nodes.
 - **OpenTofu code is NOT tested**: it exists only as disposable test scaffolding.
 - **Cloud simulates the cluster**: the VPC + managed NFS share mirror the
   production topology (existing shared filesystem) so the playbooks behave the
