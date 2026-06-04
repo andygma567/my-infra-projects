@@ -1,8 +1,10 @@
 terraform {
   required_providers {
     digitalocean = {
-      source  = "digitalocean/digitalocean"
-      version = ">= 2.68"
+      source = "digitalocean/digitalocean"
+      # >= 2.81 required for the managed Network File Storage resources
+      # (digitalocean_nfs / digitalocean_nfs_attachment).
+      version = ">= 2.81"
     }
   }
   required_version = "~> 1.10"

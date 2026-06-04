@@ -1,40 +1,29 @@
 ---
 all:
   hosts:
-    # Head node - acts as NFS server, SLURM controller, and DB
+    # Head node - SLURM controller and accounting database
     ${head_node_name}:
       ansible_host: ${head_node_public_ip}
       private_ip: ${head_node_private_ip}
 %{ for node in compute_nodes ~}
-    # Compute node ${node.name} - acts as NFS client and SLURM exec host
+    # Compute node ${node.name} - SLURM exec host
     ${node.name}:
       ansible_host: ${node.public_ip}
       private_ip: ${node.private_ip}
 %{ endfor ~}
 
   children:
-    # === NFS Groups ===
-    nfs_servers:
-      hosts:
-        ${head_node_name}:
-    
-    nfs_clients:
-      hosts:
-%{ for node in compute_nodes ~}
-        ${node.name}:
-%{ endfor ~}
-
     # === SLURM Groups ===
     slurmservers:
       hosts:
         ${head_node_name}:
-    
+
     slurmexechosts:
       hosts:
 %{ for node in compute_nodes ~}
         ${node.name}:
 %{ endfor ~}
-    
+
     slurmdbdservers:
       hosts:
         ${head_node_name}:
@@ -43,7 +32,7 @@ all:
     head_nodes:
       hosts:
         ${head_node_name}:
-    
+
     compute_nodes:
       hosts:
 %{ for node in compute_nodes ~}
@@ -53,3 +42,8 @@ all:
   vars:
     ansible_user: root
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    # Shared filesystem is a managed NFS share mounted by cloud-init (not Ansible).
+    # Exposed here for reference / playbooks that need the shared path.
+    shared_fs_host: ${nfs_share_host}
+    shared_fs_export_path: ${nfs_share_path}
+    shared_fs_mount_point: ${nfs_mount_point}

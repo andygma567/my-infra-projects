@@ -45,6 +45,22 @@ output "all_node_ips" {
   description = "All public and private IP addresses of cluster nodes"
 }
 
+# Managed Shared Filesystem (Network File Storage)
+output "nfs_share_host" {
+  value       = digitalocean_nfs.shared.host
+  description = "Host IP of the managed NFS share (reachable from within the VPC)"
+}
+
+output "nfs_share_path" {
+  value       = digitalocean_nfs.shared.mount_path
+  description = "Export path of the managed NFS share"
+}
+
+output "nfs_mount_point" {
+  value       = var.nfs_mount_point
+  description = "Local directory where the share is mounted on every node"
+}
+
 # Ansible Inventory File Location
 output "inventory_file" {
   value       = local_file.ansible_inventory.filename

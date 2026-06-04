@@ -1,0 +1,31 @@
+#!/bin/bash
+# Provisioned by OpenTofu via cloud-init.
+# Mounts the DigitalOcean managed Network File Storage share so the shared
+# filesystem exists BEFORE Ansible runs. This mirrors the bare-metal cluster,
+# where NFS is already set up and Ansible only configures Slurm.
+set -euo pipefail
+
+NFS_HOST="${nfs_host}"
+NFS_EXPORT_PATH="${nfs_mount_path}"
+LOCAL_MOUNT="${local_mount}"
+
+apt-get update -y
+apt-get install -y nfs-common
+
+mkdir -p "$${LOCAL_MOUNT}"
+
+# The share attachment to the VPC can take a moment to become reachable after
+# boot, so retry the mount for a few minutes before giving up.
+for attempt in $(seq 1 30); do
+  if mount -t nfs -o nconnect=8,nfsvers=4.1 "$${NFS_HOST}:$${NFS_EXPORT_PATH}" "$${LOCAL_MOUNT}"; then
+    echo "Mounted $${NFS_HOST}:$${NFS_EXPORT_PATH} at $${LOCAL_MOUNT}"
+    break
+  fi
+  echo "NFS mount attempt $${attempt} failed; retrying in 10s..."
+  sleep 10
+done
+
+# Persist the mount across reboots.
+if ! grep -q "$${LOCAL_MOUNT}" /etc/fstab; then
+  echo "$${NFS_HOST}:$${NFS_EXPORT_PATH} $${LOCAL_MOUNT} nfs nconnect=8,nfsvers=4.1,_netdev 0 0" >> /etc/fstab
+fi

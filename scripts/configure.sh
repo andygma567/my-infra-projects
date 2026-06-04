@@ -1,20 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ENV="${1:-dev}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-INV="${ROOT}/build/inventory.ini"
 
+# Install Ansible dependencies (collections + roles).
 ansible-galaxy collection install -r "${ROOT}/ansible/requirements.yml" -p "${ROOT}/ansible/collections"
+ansible-galaxy role install -r "${ROOT}/ansible/requirements.yml" -p "${ROOT}/ansible/roles"
 
-ansible -i "${INV}" all -m ping
-EXTRA="${ROOT}/envs/${ENV}/ansible.extra.yml"
-if [ -f "${EXTRA}" ]; then
-  EXTRA_FLAG=(-e @"${EXTRA}")
-else
-  EXTRA_FLAG=()
-fi
+# Run from the ansible/ directory so ansible.cfg resolves the inventory
+# (./inventory for group_vars + ../build/hosts.yml for the Tofu-generated hosts).
+cd "${ROOT}/ansible"
 
-ansible-playbook -i "${INV}" "${ROOT}/ansible/playbooks/nfs.yml" "${EXTRA_FLAG[@]}"
-ansible-playbook -i "${INV}" "${ROOT}/ansible/playbooks/docker.yml" "${EXTRA_FLAG[@]}"
-ansible-playbook -i "${INV}" "${ROOT}/ansible/playbooks/slurmdbd.yml" "${EXTRA_FLAG[@]}"
-ansible-playbook -i "${INV}" "${ROOT}/ansible/playbooks/slurm.yml" "${EXTRA_FLAG[@]}"
+ansible all -m ping
+
+# The shared filesystem is provisioned by OpenTofu (managed NFS) and mounted via
+# cloud-init before this runs, so Ansible only configures Slurm.
+ansible-playbook playbooks/slurmdbd.yml
+ansible-playbook playbooks/slurm.yml
