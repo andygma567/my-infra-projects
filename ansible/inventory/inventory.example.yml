@@ -38,7 +38,3 @@
 #   vars:
 #     ansible_user: root
 #     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-#     # Shared filesystem provided by managed NFS, mounted via cloud-init.
-#     shared_fs_host: 10.200.0.10
-#     shared_fs_export_path: /
-#     shared_fs_mount_point: /shared

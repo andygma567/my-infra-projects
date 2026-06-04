@@ -42,8 +42,3 @@ all:
   vars:
     ansible_user: root
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-    # Shared filesystem is a managed NFS share mounted by cloud-init (not Ansible).
-    # Exposed here for reference / playbooks that need the shared path.
-    shared_fs_host: ${nfs_share_host}
-    shared_fs_export_path: ${nfs_share_path}
-    shared_fs_mount_point: ${nfs_mount_point}
