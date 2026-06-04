@@ -5,10 +5,5 @@ collections:
     version: ">=3.0.0"
 
 roles:
-  # NFS is no longer configured by Ansible; the shared filesystem is provided by
-  # a managed NFS share (DigitalOcean) in dev and pre-existing NFS in production.
-  - src: geerlingguy.docker
-    version: "7.8.0"
-
   - src: galaxyproject.slurm
     version: "1.0.5"
