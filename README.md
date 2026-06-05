@@ -22,26 +22,17 @@ SLURM and assume the shared filesystem already exists.
 ## Architecture
 
 ```
-Infrastructure (OpenTofu, disposable)        Deliverable (Ansible)
--------------------------------------        ---------------------
-region default VPC (referenced, not made)    playbooks/slurmdbd.yml
-managed NFS share  --(cloud-init mount)-->   playbooks/slurm.yml
-head + compute droplets
+OpenTofu (disposable)          Ansible (deliverable)
+NFS share + droplets    -->    playbooks/slurmdbd.yml, slurm.yml
         |
-        '--> build/hosts.yml (single generated inventory)
+        '--> build/hosts.yml
 ```
 
-- `tofu/` - provisions the managed NFS share and the droplets, and generates the
-  Ansible inventory at `build/hosts.yml` from `tofu/hosts.tftpl`. The network is
-  **not** provisioned: `tofu/main.tf` references the region's existing default
-  VPC via a `data` source (see "Networking" below), so the disposable
-  create/destroy cycle never touches a VPC.
-- `ansible/` - the SLURM playbooks (`slurmdbd.yml`, `slurm.yml`, `uninstall.yml`),
-  group vars, and testinfra tests. `ansible/ansible.cfg` combines `inventory/`
-  (group vars) with the generated `../build/hosts.yml` (hosts).
-- `scripts/` - thin wrappers for the provision -> configure -> test -> destroy
-  workflow.
-- `tofu/terraform.tfvars` - OpenTofu variables (auto-loaded by `tofu apply`).
+- `tofu/` — provisions NFS + droplets, generates `build/hosts.yml`
+- `ansible/` — SLURM playbooks, group vars, and testinfra tests
+- `scripts/` — wrappers for provision → configure → test → destroy
+
+The network is referenced, not created — see [docs/networking.md](docs/networking.md).
 
 ## Prerequisites
 
@@ -69,43 +60,6 @@ head + compute droplets
 # 4. Destroy the test infrastructure when done
 ./scripts/destroy.sh
 ```
-
-### Networking: the VPC is referenced, not managed
-
-`tofu/main.tf` does **not** create a VPC. Instead it looks up the region's
-existing **default** VPC via a data source:
-
-```hcl
-data "digitalocean_vpc" "slurm_vpc" {
-  region = var.region
-}
-```
-
-This is deliberate. DigitalOcean requires exactly one **default VPC per region**
-and **default VPCs cannot be deleted** (`403 Can not delete default VPCs`). A
-dedicated VPC created by `apply` gets auto-promoted to the region default when no
-other default exists, which then breaks the disposable lifecycle in two ways:
-
-- **`destroy` fails** with `403 ... Can not delete default VPCs`, and
-- after dropping it from state, the **next `apply` fails** with
-  `422 ... a VPC with the same name already exists`.
-
-Referencing the always-present default VPC sidesteps both: the droplets and NFS
-share are placed in it, but `apply` never creates it and `destroy` never deletes
-it. Trade-off: the test nodes share the region's default VPC rather than a
-dedicated isolated network with a custom IP range — fine for disposable test
-scaffolding.
-
-> **Migrating from the old resource-based config?** If a previous version managed
-> `digitalocean_vpc.slurm_vpc`, drop it from state once (this only edits local
-> state; the VPC itself is untouched and stays as the free region default):
->
-> ```bash
-> cd tofu
-> tofu state rm digitalocean_vpc.slurm_vpc   # ignore if it's already absent
-> ```
->
-> VPCs live under **Networking → VPC** in the DO console (not the **Domains** tab).
 
 ### Teardown gotcha (`destroy.sh`): NFS detach is slow and can time out
 
@@ -138,63 +92,24 @@ tofu state rm digitalocean_nfs_attachment.shared
 cd .. && ./scripts/destroy.sh   # now deletes the share; the VPC is left alone
 ```
 
-### Configure script: install, uninstall, and scale
+### Configure and scale
 
-[`scripts/configure.sh`](scripts/configure.sh) is the main entrypoint for Slurm
-lifecycle on the inventory (bare metal or test VMs). It defaults to `install`.
-
-```bash
-# Deploy (same as ./scripts/configure.sh with no subcommand)
-./scripts/configure.sh install
-
-# Full purge: Slurm, munge, MariaDB, configs, and /etc/hosts entries
-./scripts/configure.sh uninstall          # prompts for confirmation
-
-# Scale up: add hosts to slurmexechosts in inventory, then reconcile
-./scripts/configure.sh scale
-
-# Scale down: drain nodes first, then purge Slurm on removed hosts only
-./scripts/configure.sh scale --remove slurm-dev-compute-02
-# Edit inventory to drop those hosts from slurmexechosts, then:
-./scripts/configure.sh scale
-```
-
-**Scale-down assumptions:** nodes are already drained and have no running jobs.
-`scale --remove` does not edit inventory automatically; remove hosts from
-`slurmexechosts` in `build/hosts.yml` or your static inventory, then run
-`scale` again to regenerate `slurm.conf` on the cluster.
-
-Uninstall removes only Slurm software. It does not destroy DigitalOcean droplets
-(use `./scripts/destroy.sh`) or unmount the shared NFS share.
-
-### Running individual Ansible playbooks
-
-Run from the `ansible/` directory so `ansible.cfg` resolves the inventory
-(`./inventory` for group vars + `../build/hosts.yml` for hosts):
-
-```bash
-cd ansible
-ansible-galaxy collection install -r requirements.yml -p collections
-ansible-galaxy role install -r requirements.yml -p roles
-
-ansible all -m ping
-ansible-playbook playbooks/slurmdbd.yml
-ansible-playbook playbooks/slurm.yml
-ansible-playbook playbooks/uninstall.yml   # full purge; use -e purge_db=false for partial
-```
+[`scripts/configure.sh`](scripts/configure.sh) defaults to `install`. It also
+supports `uninstall` and `scale` (add or remove compute nodes). See
+[docs/operations.md](docs/operations.md) for subcommand details and individual
+Ansible playbook usage.
 
 ### Running tests
 
-Tests use testinfra to verify the playbook results against the live inventory.
-All checks run from the controller (head node), so the suite cost is independent
-of the number of compute nodes. `scripts/test.sh` runs the SLURM deliverable
-subset:
-
 ```bash
-# Curated subset (from the ansible/ directory)
 ./scripts/test.sh
 
 # Or a single test file
 cd ansible
 pytest -v tests/test_slurm.py
 ```
+
+## Further docs
+
+- [docs/networking.md](docs/networking.md) — why the VPC is referenced, not managed
+- [docs/operations.md](docs/operations.md) — configure/scale, uninstall, and running playbooks directly
