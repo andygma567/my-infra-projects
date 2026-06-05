@@ -13,7 +13,7 @@
 #       private_ip: 10.200.0.2
 #
 #   children:
-#     # === SLURM Groups ===
+#     # Role groups consumed by galaxyproject.slurm (controller / exec / dbd).
 #     slurmservers:
 #       hosts:
 #         slurm-dev-head:
@@ -25,15 +25,6 @@
 #     slurmdbdservers:
 #       hosts:
 #         slurm-dev-head:
-#
-#     # === Convenience Groups ===
-#     head_nodes:
-#       hosts:
-#         slurm-dev-head:
-#
-#     compute_nodes:
-#       hosts:
-#         slurm-dev-compute-01:
 #
 #   vars:
 #     ansible_user: root

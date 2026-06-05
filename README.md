@@ -161,8 +161,8 @@ lifecycle on the inventory (bare metal or test VMs). It defaults to `install`.
 
 **Scale-down assumptions:** nodes are already drained and have no running jobs.
 `scale --remove` does not edit inventory automatically; remove hosts from
-`slurmexechosts` (and `compute_nodes`) in `build/hosts.yml` or your static
-inventory, then run `scale` again to regenerate `slurm.conf` on the cluster.
+`slurmexechosts` in `build/hosts.yml` or your static inventory, then run
+`scale` again to regenerate `slurm.conf` on the cluster.
 
 Uninstall removes only Slurm software. It does not destroy DigitalOcean droplets
 (use `./scripts/destroy.sh`) or unmount the shared NFS share.

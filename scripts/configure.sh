@@ -83,7 +83,7 @@ run_scale() {
     echo "Purging Slurm on: ${limit}"
     ansible-playbook playbooks/uninstall.yml --limit "${limit}" -e purge_db=false
     echo ""
-    echo "Remove these hosts from slurmexechosts (and compute_nodes) in your inventory:"
+    echo "Remove these hosts from slurmexechosts in your inventory:"
     echo "  ${REMOVE_HOSTS//,/, }"
     echo ""
     echo "After updating inventory, reconcile the cluster:"
