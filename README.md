@@ -167,15 +167,6 @@ inventory, then run `scale` again to regenerate `slurm.conf` on the cluster.
 Uninstall removes only Slurm software. It does not destroy DigitalOcean droplets
 (use `./scripts/destroy.sh`) or unmount the shared NFS share.
 
-### Alternative open-source Slurm deploy tools
-
-There is no exact "Kubespray for Slurm" for this `galaxyproject.slurm` layout, but
-these projects are worth evaluating:
-
-- [stackhpc/ansible-slurm-appliance](https://github.com/stackhpc/ansible-slurm-appliance) — OpenTofu + Ansible + OpenHPC, production-oriented appliance with reset/scale flows
-- [mtelvers/slurm-ansible](https://github.com/mtelvers/slurm-ansible) — Debian/Ubuntu Slurm + NFS + slurmdbd + slurmrestd
-- [vishalpapan/ansible-slurm-deployment](https://github.com/vishalpapan/ansible-slurm-deployment) — modular roles, cgroup v2, version-agnostic source builds
-
 ### Running individual Ansible playbooks
 
 Run from the `ansible/` directory so `ansible.cfg` resolves the inventory
@@ -207,17 +198,3 @@ subset:
 cd ansible
 pytest -v tests/test_slurm.py
 ```
-
-## Testing philosophy
-
-- **Ansible playbooks are tested**: testinfra validates the SLURM controller
-  services (`slurmctld`, `slurmdbd`) and runs an `srun` smoke job, all from the
-  head node.
-- **Fleet health is checked from the controller**: rather than SSHing every
-  compute node, a single threshold test parses `sinfo` and requires at least
-  `SLURM_MIN_HEALTHY_PCT` (set in `ansible/tests/test_slurm.py`) of nodes to be
-  healthy. This keeps the suite O(1) in node count and scales to 100+ nodes.
-- **OpenTofu code is NOT tested**: it exists only as disposable test scaffolding.
-- **Cloud simulates the cluster**: the VPC + managed NFS share mirror the
-  production topology (existing shared filesystem) so the playbooks behave the
-  same way in both places.
