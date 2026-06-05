@@ -13,7 +13,7 @@ all:
 %{ endfor ~}
 
   children:
-    # === SLURM Groups ===
+    # Role groups consumed by galaxyproject.slurm (controller / exec / dbd).
     slurmservers:
       hosts:
         ${head_node_name}:
@@ -27,17 +27,6 @@ all:
     slurmdbdservers:
       hosts:
         ${head_node_name}:
-
-    # === Convenience Groups ===
-    head_nodes:
-      hosts:
-        ${head_node_name}:
-
-    compute_nodes:
-      hosts:
-%{ for node in compute_nodes ~}
-        ${node.name}:
-%{ endfor ~}
 
   vars:
     ansible_user: root
