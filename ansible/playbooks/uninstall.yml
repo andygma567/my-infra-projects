@@ -1,0 +1,151 @@
+---
+# Full purge of Slurm, munge, and (optionally) MariaDB accounting.
+# Honors --limit for partial teardown (e.g. scale-down on exec nodes only).
+# Set purge_db=false when removing compute nodes but keeping the controller DB.
+- name: Uninstall Slurm cluster software
+  hosts: all
+  become: true
+  vars:
+    purge_db: true
+    mysql_socket: /var/run/mysqld/mysqld.sock
+    slurm_debian_packages:
+      - slurm-wlm
+      - slurm-client
+      - slurm-wlm-doc
+      - slurmdbd
+
+  tasks:
+    - name: Stop and disable slurmd on compute nodes
+      ansible.builtin.service:
+        name: slurmd
+        state: stopped
+        enabled: false
+      when: inventory_hostname in groups['slurmexechosts']
+      failed_when: false
+
+    - name: Stop and disable slurmctld on controller nodes
+      ansible.builtin.service:
+        name: slurmctld
+        state: stopped
+        enabled: false
+      when: inventory_hostname in groups['slurmservers']
+      failed_when: false
+
+    - name: Drop slurm accounting database
+      community.mysql.mysql_db:
+        name: slurm_acct_db
+        state: absent
+        login_unix_socket: "{{ mysql_socket }}"
+      when:
+        - purge_db | bool
+        - inventory_hostname in groups['slurmdbdservers']
+      failed_when: false
+
+    - name: Drop slurmdbd database user
+      community.mysql.mysql_user:
+        name: slurmdbd
+        host: 127.0.0.1
+        state: absent
+        login_unix_socket: "{{ mysql_socket }}"
+      when:
+        - purge_db | bool
+        - inventory_hostname in groups['slurmdbdservers']
+      failed_when: false
+
+    - name: Stop and disable slurmdbd
+      ansible.builtin.service:
+        name: slurmdbd
+        state: stopped
+        enabled: false
+      when: inventory_hostname in groups['slurmdbdservers']
+      failed_when: false
+
+    - name: Purge Slurm packages
+      ansible.builtin.apt:
+        name: "{{ slurm_debian_packages }}"
+        state: absent
+        purge: true
+        autoremove: true
+      failed_when: false
+
+    - name: Purge MariaDB server and PyMySQL
+      ansible.builtin.apt:
+        name:
+          - mariadb-server
+          - python3-pymysql
+        state: absent
+        purge: true
+        autoremove: true
+      when:
+        - purge_db | bool
+        - inventory_hostname in groups['slurmdbdservers']
+      failed_when: false
+
+    - name: Remove MariaDB data directory
+      ansible.builtin.file:
+        path: /var/lib/mysql
+        state: absent
+      when:
+        - purge_db | bool
+        - inventory_hostname in groups['slurmdbdservers']
+
+    - name: Stop and disable munge
+      ansible.builtin.service:
+        name: munge
+        state: stopped
+        enabled: false
+      failed_when: false
+
+    - name: Purge munge package
+      ansible.builtin.apt:
+        name: munge
+        state: absent
+        purge: true
+        autoremove: true
+      failed_when: false
+
+    - name: Remove Slurm and munge configuration directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/slurm
+        - /etc/munge
+        - /var/lib/munge
+        - /var/lib/slurm
+        - /var/lib/slurm-llnl
+        - /var/spool/slurm
+        - /var/spool/slurmd
+        - /var/spool/slurmctld
+        - /var/log/slurm
+        - /etc/logrotate.d/slurm
+      failed_when: false
+
+    - name: Remove slurm system user
+      ansible.builtin.user:
+        name: slurm
+        state: absent
+        remove: true
+      failed_when: false
+
+    - name: Remove slurm system group
+      ansible.builtin.group:
+        name: slurm
+        state: absent
+      failed_when: false
+
+    - name: Remove SLURM controller from /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[groups['slurmservers'][0]].private_ip }} {{ groups['slurmservers'][0] }}"
+        state: absent
+      when: groups['slurmservers'] | length > 0
+      failed_when: false
+
+    - name: Remove compute nodes from /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[item].private_ip }} {{ item }}"
+        state: absent
+      loop: "{{ groups['slurmexechosts'] }}"
+      failed_when: false
