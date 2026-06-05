@@ -206,9 +206,6 @@ subset:
 # Or a single test file
 cd ansible
 pytest -v tests/test_slurm.py
-
-# After uninstall (optional; not run by test.sh)
-pytest -v tests/test_uninstall.py
 ```
 
 ## Testing philosophy
