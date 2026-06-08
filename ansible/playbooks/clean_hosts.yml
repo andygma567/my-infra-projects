@@ -1,0 +1,23 @@
+---
+# Remove /etc/hosts entries for decommissioned compute nodes across the whole
+# cluster. During scale-down, `uninstall.yml --limit <removed>` only edits the
+# nodes being discarded, leaving stale entries on the controller and remaining
+# nodes. This play runs on every host (gather_facts disabled) and deletes the
+# matching lines by IP, so no gathered facts are required.
+#
+# Pass the hosts to clean via `-e remove_hosts=h1,h2`. They must still be in the
+# inventory when this runs so their private_ip can be resolved.
+- name: Remove decommissioned nodes from /etc/hosts
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    remove_hosts: ""
+  tasks:
+    - name: Remove /etc/hosts entries for removed nodes
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: "^{{ hostvars[item].private_ip | default(item) | regex_escape }}\\s"
+        state: absent
+      loop: "{{ remove_hosts.split(',') | map('trim') | select | list }}"
+      failed_when: false

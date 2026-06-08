@@ -134,10 +134,14 @@
         state: absent
       failed_when: false
 
+    # Match the entry by IP (regexp) rather than rebuilding the full line.
+    # The line includes ansible_hostname, a gathered fact that is undefined for
+    # hosts outside a --limit run (e.g. scale --remove), which would raise
+    # AnsibleUndefinedVariable. private_ip resolves from inventory data alone.
     - name: Remove SLURM controller from /etc/hosts
       ansible.builtin.lineinfile:
         path: /etc/hosts
-        line: "{{ hostvars[groups['slurmservers'][0]].private_ip }} {{ hostvars[groups['slurmservers'][0]].ansible_hostname }}"
+        regexp: "^{{ hostvars[groups['slurmservers'][0]].private_ip | regex_escape }}\\s"
         state: absent
       when: groups['slurmservers'] | length > 0
       failed_when: false
@@ -145,7 +149,7 @@
     - name: Remove compute nodes from /etc/hosts
       ansible.builtin.lineinfile:
         path: /etc/hosts
-        line: "{{ hostvars[item].private_ip }} {{ hostvars[item].ansible_hostname }}"
+        regexp: "^{{ hostvars[item].private_ip | regex_escape }}\\s"
         state: absent
       loop: "{{ groups['slurmexechosts'] }}"
       failed_when: false

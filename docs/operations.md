@@ -21,10 +21,50 @@ lifecycle on the inventory (bare metal or test VMs). It defaults to `install`.
 ./scripts/configure.sh scale
 ```
 
-**Scale-down assumptions:** nodes are already drained and have no running jobs.
-`scale --remove` does not edit inventory automatically; remove hosts from
-`slurmexechosts` in `build/hosts.ini` or your static inventory, then run
-`scale` again to regenerate `slurm.conf` on the cluster.
+### Removing a node from the cluster
+
+Follow this end-to-end procedure to decommission one or more compute nodes
+cleanly. It avoids stale state on the controller and the nodes that remain.
+
+1. **Drain the node(s) and confirm no running jobs.** On the controller:
+
+   ```bash
+   scontrol update NodeName=slurm-dev-compute-02 State=DRAIN Reason="decommission"
+   squeue -w slurm-dev-compute-02      # wait until empty
+   ```
+
+2. **Purge Slurm on the removed node(s) and clean `/etc/hosts` cluster-wide.**
+   The hosts must still be present in the inventory at this point so their IPs
+   resolve:
+
+   ```bash
+   ./scripts/configure.sh scale --remove slurm-dev-compute-02
+   ```
+
+   This purges Slurm on the listed hosts (`uninstall.yml --limit`, keeping the
+   accounting DB) and then runs `clean_hosts.yml` across every host to remove
+   the decommissioned nodes' `/etc/hosts` entries from the controller and the
+   remaining nodes — not just the discarded ones.
+
+3. **Remove the host(s) from `slurmexechosts`** in `build/hosts.ini` (or your
+   static inventory). `scale --remove` does not edit the inventory for you.
+
+4. **Reconcile the remaining cluster.** Regenerates `slurm.conf` for the new
+   topology and reconfigures the controller:
+
+   ```bash
+   ./scripts/configure.sh scale
+   ```
+
+5. **Verify the new topology** from the controller:
+
+   ```bash
+   sinfo
+   scontrol show nodes
+   ```
+
+   The removed node(s) should no longer appear, and the remaining nodes should
+   report a healthy state (`idle`/`mixed`/`allocated`).
 
 Uninstall removes only Slurm software. It does not destroy DigitalOcean droplets
 (use `./scripts/destroy.sh`) or unmount the shared NFS share.
