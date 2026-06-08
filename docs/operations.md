@@ -44,3 +44,8 @@ ansible-playbook playbooks/slurmdbd.yml
 ansible-playbook playbooks/slurm.yml
 ansible-playbook playbooks/uninstall.yml   # full purge; use -e purge_db=false for partial
 ```
+
+Slurmdbd host variables live in
+[`inventory/group_vars/slurmdbdservers.yml`](../ansible/inventory/group_vars/slurmdbdservers.yml).
+If `slurmdbd` fails to parse its config, see
+[ansible-slurm.md](ansible-slurm.md#known-issue-slurmctldpidfile-in-slurmdbdconf).
