@@ -71,10 +71,16 @@ ansible-galaxy role install -r ansible/requirements.yml -p ansible/roles
    [ansible/ansible.cfg](ansible/ansible.cfg), or place it at
    `ansible/inventory/hosts.ini`.
 
-2. **Configure SLURM** (slurmdbd → slurm):
+2. **Configure SLURM** (slurmdbd → slurm). `install` is the default:
 
    ```bash
-   ./scripts/configure.sh install
+   ./scripts/configure.sh
+   ```
+
+   To remove Slurm, munge, and MariaDB from the cluster:
+
+   ```bash
+   ./scripts/configure.sh uninstall
    ```
 
 3. **Validate** with the testinfra suite:
