@@ -113,3 +113,4 @@ pytest -v tests/test_slurm.py
 
 - [docs/networking.md](docs/networking.md) — why the VPC is referenced, not managed
 - [docs/operations.md](docs/operations.md) — configure/scale, uninstall, and running playbooks directly
+- [docs/ansible-slurm.md](docs/ansible-slurm.md) — `galaxyproject.slurm` role and known upstream issues
