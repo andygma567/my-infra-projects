@@ -34,15 +34,15 @@ Primary (recommended):
 uv sync
 ```
 
-Fallback:
+Fallback (installs runtime + dev deps from [pyproject.toml](pyproject.toml)):
 
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
-pip install ansible pytest pytest-testinfra
+pip install -e . --group dev
 ```
 
-Dependencies are defined in [pyproject.toml](pyproject.toml) (Python 3.11+).
+Requires Python 3.11+ and pip 25.1+ (for `--group dev`).
 
 ### Ansible Galaxy dependencies
 
