@@ -137,7 +137,7 @@
     - name: Remove SLURM controller from /etc/hosts
       ansible.builtin.lineinfile:
         path: /etc/hosts
-        line: "{{ hostvars[groups['slurmservers'][0]].private_ip }} {{ groups['slurmservers'][0] }}"
+        line: "{{ hostvars[groups['slurmservers'][0]].private_ip }} {{ hostvars[groups['slurmservers'][0]].ansible_hostname }}"
         state: absent
       when: groups['slurmservers'] | length > 0
       failed_when: false
@@ -145,7 +145,7 @@
     - name: Remove compute nodes from /etc/hosts
       ansible.builtin.lineinfile:
         path: /etc/hosts
-        line: "{{ hostvars[item].private_ip }} {{ item }}"
+        line: "{{ hostvars[item].private_ip }} {{ hostvars[item].ansible_hostname }}"
         state: absent
       loop: "{{ groups['slurmexechosts'] }}"
       failed_when: false

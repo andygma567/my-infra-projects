@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Run from the ansible/ directory so testinfra's ansible backend uses
 # ansible/ansible.cfg to resolve `ansible://<group>` against the
-# Tofu-generated inventory (../build/hosts.yml) and group_vars.
+# Tofu-generated inventory (../build/hosts.ini) and group_vars.
 cd "$(dirname "$0")/../ansible"
 
 # SLURM-focused deliverable. All checks run from the controller (head node):

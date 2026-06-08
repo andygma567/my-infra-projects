@@ -23,7 +23,7 @@ lifecycle on the inventory (bare metal or test VMs). It defaults to `install`.
 
 **Scale-down assumptions:** nodes are already drained and have no running jobs.
 `scale --remove` does not edit inventory automatically; remove hosts from
-`slurmexechosts` in `build/hosts.yml` or your static inventory, then run
+`slurmexechosts` in `build/hosts.ini` or your static inventory, then run
 `scale` again to regenerate `slurm.conf` on the cluster.
 
 Uninstall removes only Slurm software. It does not destroy DigitalOcean droplets
@@ -32,7 +32,7 @@ Uninstall removes only Slurm software. It does not destroy DigitalOcean droplets
 ## Running individual Ansible playbooks
 
 Run from the `ansible/` directory so `ansible.cfg` resolves the inventory
-(`./inventory` for group vars + `../build/hosts.yml` for hosts):
+(`./inventory` for group vars + `../build/hosts.ini` for hosts):
 
 ```bash
 cd ansible

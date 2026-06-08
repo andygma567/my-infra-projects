@@ -13,7 +13,7 @@
     - name: Add SLURM controller to /etc/hosts on all nodes
       lineinfile:
         path: /etc/hosts
-        line: "{{ hostvars[groups['slurmservers'][0]].private_ip }} {{ groups['slurmservers'][0] }}"
+        line: "{{ hostvars[groups['slurmservers'][0]].private_ip }} {{ hostvars[groups['slurmservers'][0]].ansible_hostname }}"
         state: present
       # Example result: "10.200.0.2 slurm-cluster-head" gets added to /etc/hosts
     
@@ -22,7 +22,7 @@
     - name: Add all compute nodes to /etc/hosts on all nodes
       lineinfile:
         path: /etc/hosts
-        line: "{{ hostvars[item].private_ip }} {{ item }}"
+        line: "{{ hostvars[item].private_ip }} {{ hostvars[item].ansible_hostname }}"
         state: present
       loop: "{{ groups['slurmexechosts'] }}"
       # Example with 1 node: "10.200.0.3 slurm-cluster-compute-01"

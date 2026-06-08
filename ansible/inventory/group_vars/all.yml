@@ -2,6 +2,16 @@
 ansible_ssh_private_key_file: ~/.ssh/id_ed25519
 ansible_python_interpreter: /usr/bin/python3
 
+# Connection defaults for every host. Kept here (not in the inventory file) so
+# the generated/static inventory stays a clean list of raw IPs.
+ansible_user: root
+ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+# Each node is addressed by a single IP (its inventory host entry), used for
+# both SSH and inter-node SLURM communication. private_ip just mirrors that IP
+# so the SLURM playbooks/templates keep working unchanged.
+private_ip: "{{ ansible_host | default(inventory_hostname) }}"
+
 # Configure munge - just provide the path, not the content
 slurm_configure_munge: true
 slurm_munge_key: "{{ playbook_dir }}/../../munge.key"
@@ -11,17 +21,19 @@ slurm_munge_key: "{{ playbook_dir }}/../../munge.key"
 
 slurm_partitions:
   - name: debug
-    Nodes: "{{ groups['slurmexechosts'] | join(',') }}"
+    # Node names are real hostnames (SLURM identifies nodes by hostname).
+    Nodes: "{{ groups['slurmexechosts'] | map('extract', hostvars, 'ansible_hostname') | join(',') }}"
     Default: YES
 
 # Override only what you need to change from defaults
 slurm_config:
   ClusterName: cluster
-  # Controller hostname - SLURM doesn't resolve this, it uses SlurmctldAddr below
-  SlurmctldHost: "{{ groups['slurmservers'][0] }}"
-  # Controller's private IP - this is what nodes actually connect to
+  # Controller hostname - SLURM matches this against the node's own hostname to
+  # decide it is the controller, so it must be the real hostname (not an IP).
+  SlurmctldHost: "{{ hostvars[groups['slurmservers'][0]].ansible_hostname }}"
+  # Controller's IP - this is what nodes actually connect to
   SlurmctldAddr: "{{ hostvars[groups['slurmservers'][0]].private_ip }}"
   # Enable accounting
   AccountingStorageType: accounting_storage/slurmdbd
-  AccountingStorageHost: "{{ groups['slurmdbdservers'][0] }}"
+  AccountingStorageHost: "{{ hostvars[groups['slurmdbdservers'][0]].ansible_hostname }}"
   JobAcctGatherType: jobacct_gather/linux

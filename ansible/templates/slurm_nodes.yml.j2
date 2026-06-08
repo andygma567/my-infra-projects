@@ -1,6 +1,8 @@
 # Dynamic SLURM nodes configuration
-# Generated from groups['slurmexechosts'] inventory
+# Generated from groups['slurmexechosts'] inventory.
+# NodeName is the real hostname (SLURM identifies nodes by hostname); NodeAddr
+# is the inventory IP used for actual communication.
 {% for host in groups['slurmexechosts'] %}
-- name: {{ host }}
+- name: {{ hostvars[host].ansible_hostname }}
   NodeAddr: {{ hostvars[host].private_ip }}
 {% endfor %}
