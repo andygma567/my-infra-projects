@@ -101,20 +101,16 @@ resource "local_file" "ansible_inventory" {
   # Saves to ../build/hosts.ini so Ansible can find it.
   filename = "${path.module}/../build/hosts.ini"
 
-  # Generate content using the template file
+  # Generate content using the template file. Each node is addressed by its
+  # single public IP for both SSH and inter-node SLURM communication.
   content = templatefile("${path.module}/hosts.ini.tftpl", {
-    # Pass head node information to the template
-    head_node_public_ip  = digitalocean_droplet.slurm_head_node.ipv4_address
-    head_node_private_ip = digitalocean_droplet.slurm_head_node.ipv4_address_private
-    head_node_name       = digitalocean_droplet.slurm_head_node.name
+    # Public IP of the head node (controller + accounting db)
+    head_node_public_ip = digitalocean_droplet.slurm_head_node.ipv4_address
 
-    # Pass compute nodes as a list of objects to the template
-    # The [*] syntax collects all compute nodes into a list
+    # Public IPs of the compute nodes (exec hosts)
     compute_nodes = [
       for node in digitalocean_droplet.slurm_compute_node : {
-        name       = node.name
-        public_ip  = node.ipv4_address
-        private_ip = node.ipv4_address_private
+        public_ip = node.ipv4_address
       }
     ]
   })
