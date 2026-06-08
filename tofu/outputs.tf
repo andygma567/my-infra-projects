@@ -64,5 +64,5 @@ output "nfs_mount_point" {
 # Ansible Inventory File Location
 output "inventory_file" {
   value       = local_file.ansible_inventory.filename
-  description = "Path to generated Ansible inventory file"
+  description = "Path to generated Ansible inventory file (INI format)"
 }

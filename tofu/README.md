@@ -107,15 +107,18 @@ The `managed-services.tf` file includes infrastructure components that support y
 
 ## Ansible Integration
 
-The configuration outputs an `ansible_inventory` structure that can be used directly:
+On `tofu apply`, the `local_file.ansible_inventory` resource renders
+`hosts.ini.tftpl` into an INI-format Ansible inventory at `../build/hosts.ini`
+(one host per line under the `slurmservers`, `slurmexechosts`, and
+`slurmdbdservers` groups). Ansible consumes it via `ansible/ansible.cfg`.
 
 ```bash
-# Get Ansible inventory from Terraform output
-tofu output -json ansible_inventory > inventory.json
+# Path to the generated inventory file
+tofu output -raw inventory_file
 
 # Or get individual IPs
 HEAD_NODE_IP=$(tofu output -raw head_node_public_ip)
-COMPUTE_NODE_IP=$(tofu output -raw compute_node_public_ip)
+COMPUTE_NODE_IPS=$(tofu output -json compute_node_public_ips)
 ```
 
 ## Security Considerations

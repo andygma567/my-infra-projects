@@ -25,10 +25,10 @@ SLURM and assume the shared filesystem already exists.
 OpenTofu (disposable)          Ansible (deliverable)
 NFS share + droplets    -->    playbooks/slurmdbd.yml, slurm.yml
         |
-        '--> build/hosts.yml
+        '--> build/hosts.ini
 ```
 
-- `tofu/` — provisions NFS + droplets, generates `build/hosts.yml`
+- `tofu/` — provisions NFS + droplets, generates `build/hosts.ini`
 - `ansible/` — SLURM playbooks, group vars, and testinfra tests
 - `scripts/` — wrappers for provision → configure → test → destroy
 
@@ -48,7 +48,7 @@ The network is referenced, not created — see [docs/networking.md](docs/network
 
 ```bash
 # 1. Provision test infra: managed NFS share + droplets in the region's default
-#    VPC (generates build/hosts.yml)
+#    VPC (generates build/hosts.ini)
 ./scripts/up.sh
 
 # 2. Configure SLURM (slurmdbd -> slurm). The shared filesystem is already mounted.

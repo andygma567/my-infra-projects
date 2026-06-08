@@ -2,6 +2,11 @@
 ansible_ssh_private_key_file: ~/.ssh/id_ed25519
 ansible_python_interpreter: /usr/bin/python3
 
+# Per-host private IP for inter-node SLURM comms. The Tofu-generated inventory
+# sets this explicitly; for a single-network bare-metal cluster it defaults to
+# the host's own IP.
+private_ip: "{{ ansible_host | default(inventory_hostname) }}"
+
 # Configure munge - just provide the path, not the content
 slurm_configure_munge: true
 slurm_munge_key: "{{ playbook_dir }}/../../munge.key"

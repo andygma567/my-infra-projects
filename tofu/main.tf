@@ -92,17 +92,17 @@ resource "digitalocean_droplet" "slurm_compute_node" {
 # ============================================================================
 # ANSIBLE INVENTORY GENERATION
 # ============================================================================
-# This resource automatically generates an Ansible inventory.yaml file
+# This resource automatically generates an Ansible inventory (INI format)
 # whenever you run 'terraform apply'
 # ============================================================================
 
 resource "local_file" "ansible_inventory" {
   # Where to save the generated inventory file.
-  # Saves to ../build/hosts.yml so Ansible can find it.
-  filename = "${path.module}/../build/hosts.yml"
+  # Saves to ../build/hosts.ini so Ansible can find it.
+  filename = "${path.module}/../build/hosts.ini"
 
   # Generate content using the template file
-  content = templatefile("${path.module}/hosts.tftpl", {
+  content = templatefile("${path.module}/hosts.ini.tftpl", {
     # Pass head node information to the template
     head_node_public_ip  = digitalocean_droplet.slurm_head_node.ipv4_address
     head_node_private_ip = digitalocean_droplet.slurm_head_node.ipv4_address_private
