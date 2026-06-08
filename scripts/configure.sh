@@ -12,8 +12,10 @@ Usage: configure.sh [install|uninstall|scale] [options]
   uninstall            Full purge of Slurm, munge, and MariaDB on all nodes.
   scale [--remove h1,h2]
                        Reconcile cluster to current inventory (scale up).
-                       With --remove: purge Slurm on listed hosts only, then
-                       print steps to remove them from inventory and re-run scale.
+                       With --remove: drain the listed hosts first, then this
+                       purges Slurm on them, cleans their /etc/hosts entries
+                       cluster-wide, and prints steps to remove them from
+                       inventory and re-run scale.
 
 Options:
   --remove HOSTS       Comma-separated hostnames to remove (scale only).
@@ -82,6 +84,12 @@ run_scale() {
     local limit="${REMOVE_HOSTS//,/,}"
     echo "Purging Slurm on: ${limit}"
     ansible-playbook playbooks/uninstall.yml --limit "${limit}" -e purge_db=false
+    # Clean stale /etc/hosts entries for the removed nodes everywhere, while they
+    # are still in the inventory. The --limit purge above only edits the removed
+    # nodes themselves, leaving stale entries on the controller and the nodes
+    # that remain in the cluster.
+    echo "Cleaning /etc/hosts entries for removed nodes across the cluster"
+    ansible-playbook playbooks/clean_hosts.yml -e "remove_hosts=${REMOVE_HOSTS}"
     echo ""
     echo "Remove these hosts from slurmexechosts in your inventory:"
     echo "  ${REMOVE_HOSTS//,/, }"
