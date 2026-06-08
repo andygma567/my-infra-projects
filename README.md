@@ -2,104 +2,130 @@
 
 ## Purpose
 
-This repository is a **development and testing environment for the Ansible
-playbooks that configure SLURM** on HPC clusters. It uses OpenTofu to provision
-disposable test VMs on DigitalOcean that simulate a bare-metal cluster, so the
-playbooks can be developed and validated before running them against the real
-on-premises cluster.
+This repository provides **Ansible playbooks that configure SLURM** on HPC
+clusters. Run them directly against any bare-metal inventory — no DigitalOcean or
+OpenTofu required.
 
-**Key principle:** The OpenTofu infrastructure is disposable test scaffolding.
-The **Ansible SLURM playbooks are the actual deliverable**.
+**Key principle:** The **Ansible SLURM playbooks are the deliverable**. The
+OpenTofu stack in `tofu/` is optional, disposable test scaffolding that provisions
+throwaway DigitalOcean VMs so you can develop and validate before deploying to
+production.
 
-### Shared filesystem
+The playbooks assume a shared filesystem (NFS) already exists and do not set one
+up; if you need to create one, Jeff Geerling's open-source
+[`geerlingguy.nfs`](https://github.com/geerlingguy/ansible-role-nfs) role can do
+it.
 
-The production cluster already has a shared filesystem (NFS), so Ansible does
-**not** set one up. To mirror that in the test environment, OpenTofu provisions a
-**DigitalOcean managed Network File Storage** share and mounts it on every node
-via cloud-init *before* Ansible runs. As a result, the playbooks only configure
-SLURM and assume the shared filesystem already exists.
+## Layout
 
-## Architecture
-
-```
-OpenTofu (disposable)          Ansible (deliverable)
-NFS share + droplets    -->    playbooks/slurmdbd.yml, slurm.yml
-        |
-        '--> build/hosts.ini
-```
-
-- `tofu/` — provisions NFS + droplets, generates `build/hosts.ini`
-- `ansible/` — SLURM playbooks, group vars, and testinfra tests
-- `scripts/` — wrappers for provision → configure → test → destroy
+- `ansible/` — SLURM playbooks, group vars, and testinfra tests (the deliverable)
+- `tofu/` — optional DigitalOcean test infra; generates `build/hosts.ini`
+- `scripts/` — wrappers for configure, test, and (optionally) provision/destroy
 
 The network is referenced, not created — see [docs/networking.md](docs/networking.md).
 
-## Prerequisites
+## Environment setup
 
-- A DigitalOcean API token exported as `DIGITALOCEAN_TOKEN`.
-- An SSH key registered in DigitalOcean (referenced by `tofu/main.tf`).
-- OpenTofu, Ansible, and the Python test dependencies (`pytest`, `pytest-testinfra`).
-- **Region:** managed Network File Storage is GA only in `atl1`, `nyc2`, and
-  `ams3`, so `region` in your tfvars must be one of these. The default is `nyc2`.
+### Python dependencies
 
-## Usage
-
-### Quick start workflow
+Primary (recommended):
 
 ```bash
-# 1. Provision test infra: managed NFS share + droplets in the region's default
-#    VPC (generates build/hosts.ini)
+uv sync
+```
+
+Fallback:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install ansible pytest pytest-testinfra
+```
+
+Dependencies are defined in [pyproject.toml](pyproject.toml) (Python 3.11+).
+
+### Ansible Galaxy dependencies
+
+The playbooks require the `community.mysql` collection and the
+`galaxyproject.slurm` role, pinned in
+[ansible/requirements.yml](ansible/requirements.yml).
+
+[`scripts/configure.sh`](scripts/configure.sh) installs these automatically on
+each run. To install manually:
+
+```bash
+ansible-galaxy collection install -r ansible/requirements.yml -p ansible/collections
+ansible-galaxy role install -r ansible/requirements.yml -p ansible/roles
+```
+
+## Quick start — Ansible on bare metal
+
+1. **Create your inventory.** Copy
+   [ansible/inventory.example.ini](ansible/inventory.example.ini) as a starting
+   point and list your node IPs under `slurmservers`, `slurmexechosts`, and
+   `slurmdbdservers`. Connection defaults (`ansible_user`, SSH key, etc.) live in
+   [ansible/inventory/group_vars/all.yml](ansible/inventory/group_vars/all.yml),
+   so the inventory file stays a clean list of IPs.
+
+   Point Ansible at your file by updating `inventory` in
+   [ansible/ansible.cfg](ansible/ansible.cfg), or place it at
+   `ansible/inventory/hosts.ini`.
+
+2. **Configure SLURM** (slurmdbd → slurm):
+
+   ```bash
+   ./scripts/configure.sh install
+   ```
+
+3. **Validate** with the testinfra suite:
+
+   ```bash
+   ./scripts/test.sh
+   ```
+
+## Optional — OpenTofu test infra on DigitalOcean
+
+Use this path only if you want disposable VMs to test or develop the playbooks
+without a real cluster.
+
+**Prerequisites:**
+
+- DigitalOcean API token exported as `DIGITALOCEAN_TOKEN`
+- An SSH key registered in DigitalOcean (referenced by `tofu/main.tf`)
+- OpenTofu installed
+- **Region:** managed Network File Storage is GA only in `atl1`, `nyc2`, and
+  `ams3` (default: `nyc2`)
+
+```bash
+# Provision test infra (generates build/hosts.ini)
 ./scripts/up.sh
 
-# 2. Configure SLURM (slurmdbd -> slurm). The shared filesystem is already mounted.
+# Configure and test — same as bare metal
 ./scripts/configure.sh install
-
-# 3. Run the testinfra test subset to validate the result
 ./scripts/test.sh
 
-# 4. Destroy the test infrastructure when done
+# Tear down when done
 ./scripts/destroy.sh
 ```
 
-### Teardown gotcha (`destroy.sh`): NFS detach is slow and can time out
+### Teardown note (`destroy.sh`)
 
-Destroying `digitalocean_nfs_attachment.shared` calls DigitalOcean's
-*asynchronous* "detach share from VPC" operation. The provider polls for
-completion with an **internal, hardcoded ~5-minute timeout** that a
-`timeouts { delete = "..." }` block **cannot** override. If DO takes longer than
-that, you'll see:
-
-```
-Error: Error detaching share from vpc after retry timeout:
-  ... timeout waiting for NFS detach to complete
-```
-
-The detach usually *does* finish on DO's side moments later (the share shows as
-`Detached` / `INACTIVE` in the UI). But because the attachment is still in
-OpenTofu state, the next `destroy` tries to detach it again and hits a catch-22:
-
-```
-400 ... share must be active to detach
-```
-
-**Workaround** — once the share shows `Detached` in the DO UI, drop the stale
-attachment from state and re-run destroy (this only edits local state and never
-touches real infrastructure):
+NFS detach on DigitalOcean can hit a hardcoded ~5-minute provider timeout. If
+destroy fails, wait until the share shows `Detached` in the DO UI, then:
 
 ```bash
-cd tofu
-tofu state rm digitalocean_nfs_attachment.shared
-cd .. && ./scripts/destroy.sh   # now deletes the share; the VPC is left alone
+cd tofu && tofu state rm digitalocean_nfs_attachment.shared
+cd .. && ./scripts/destroy.sh
 ```
 
-### Configure and scale
+## Configure and scale
 
 [`scripts/configure.sh`](scripts/configure.sh) defaults to `install`. It also
 supports `uninstall` and `scale` (add or remove compute nodes). See
-[docs/operations.md](docs/operations.md) for subcommand details and individual
-Ansible playbook usage.
+[docs/operations.md](docs/operations.md) for subcommand details and running
+playbooks directly.
 
-### Running tests
+## Running tests
 
 ```bash
 ./scripts/test.sh
